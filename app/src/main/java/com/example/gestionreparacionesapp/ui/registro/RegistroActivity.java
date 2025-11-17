@@ -7,34 +7,33 @@ import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.gestionreparacionesapp.R;
-import com.example.gestionreparacionesapp.data.db.AppDatabase;
-import com.example.gestionreparacionesapp.data.db.entity.Usuario;
-import com.example.gestionreparacionesapp.util.PasswordUtils;
 
 import java.util.regex.Pattern;
 
 public class RegistroActivity extends AppCompatActivity {
 
-    private EditText etNombreCompleto, etUsuario, etCorreo, etConfirmarCorreo, etContrasena, etTelefono;
+    private EditText etNombreCompleto, etCorreo, etConfirmarCorreo, etContrasena, etTelefono;
     private Button btnCancelar, btnContinuar;
-    private AppDatabase db;
+
+    private RegistroViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_registro);
 
-        db = AppDatabase.getInstance(this);
+        viewModel = new ViewModelProvider(this).get(RegistroViewModel.class);
 
         initViews();
         setupListeners();
+        setupObservers();
     }
 
     private void initViews() {
         etNombreCompleto = findViewById(R.id.etNombreCompleto);
-        etUsuario = findViewById(R.id.etUsuario);
         etCorreo = findViewById(R.id.etCorreo);
         etConfirmarCorreo = findViewById(R.id.etConfirmarCorreo);
         etContrasena = findViewById(R.id.etContrasena);
@@ -45,20 +44,27 @@ public class RegistroActivity extends AppCompatActivity {
 
     private void setupListeners() {
         btnCancelar.setOnClickListener(v -> finish());
-        btnContinuar.setOnClickListener(v -> registrar());
+        btnContinuar.setOnClickListener(v -> validarYRegistrar());
     }
 
-    private void registrar() {
+    private void setupObservers() {
+        viewModel.getRegistroResult().observe(this, result -> {
+            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show();
+            if (result.isSuccess) {
+                finish();
+            }
+        });
+    }
+
+    private void validarYRegistrar() {
         String nombre = etNombreCompleto.getText().toString().trim();
-        String usuario = etUsuario.getText().toString().trim();
         String correo = etCorreo.getText().toString().trim();
         String confirmarCorreo = etConfirmarCorreo.getText().toString().trim();
         String contrasena = etContrasena.getText().toString().trim();
         String telefono = etTelefono.getText().toString().trim();
 
-        // Validaciones básicas
-        if (nombre.isEmpty() || usuario.isEmpty() || correo.isEmpty() ||
-                confirmarCorreo.isEmpty() || contrasena.isEmpty() || telefono.isEmpty()) {
+        // VALIDACIÓN RÁPIDA DE LA VISTA (5 campos principales)
+        if (nombre.isEmpty() || correo.isEmpty() || confirmarCorreo.isEmpty() || contrasena.isEmpty() || telefono.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show();
             return;
         }
@@ -68,51 +74,13 @@ public class RegistroActivity extends AppCompatActivity {
             return;
         }
 
-        if (!correo.equals(confirmarCorreo)) {
-            Toast.makeText(this, "Los correos no coinciden", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Validar contraseña: mínimo 8 caracteres, letras, números y símbolos
         if (!validarContrasena(contrasena)) {
             Toast.makeText(this, "La contraseña debe tener mínimo 8 caracteres, letras, números y 1 signo", Toast.LENGTH_LONG).show();
             return;
         }
 
-        // Verificar si ya existe el email
-        if (db.usuarioDao().getByEmail(correo) != null) {
-            Toast.makeText(this, "Este correo ya está registrado", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Verificar si el usuario ya existe
-        if (db.usuarioDao().getByUsuario(usuario) != null) {
-            Toast.makeText(this, "Este usuario ya está registrado", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // ============================
-        //       HASH PASSWORD
-        // ============================
-        String passwordHasheada = PasswordUtils.hashPassword(contrasena);
-
-        // Guardar usuario en BBDD con contraseña hasheada
-        Usuario nuevoUsuario = new Usuario(
-                nombre,
-                usuario,
-                correo,
-                passwordHasheada,
-                telefono
-        );
-
-        long id = db.usuarioDao().insert(nuevoUsuario);
-
-        if (id > 0) {
-            Toast.makeText(this, "Registro exitoso", Toast.LENGTH_SHORT).show();
-            finish();
-        } else {
-            Toast.makeText(this, "Error al registrar", Toast.LENGTH_SHORT).show();
-        }
+        // LLAMADA CORREGIDA: ENVIANDO 5 ARGUMENTOS (nombre, correo, confirmarCorreo, contrasena, telefono)
+        viewModel.registrarUsuario(nombre, correo, confirmarCorreo, contrasena, telefono);
     }
 
     private boolean validarContrasena(String contrasena) {

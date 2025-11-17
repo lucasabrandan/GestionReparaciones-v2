@@ -2,9 +2,20 @@
 <resources>
     <string name="app_name">Gestión Reparaciones</string>
 
+    <!-- Navegación y Dashboard -->
+    <string name="inicio">Inicio</string>
+    <string name="ventas">Ventas</string>
+    <string name="reparaciones">Reparaciones</string>
+    <string name="clientes">Clientes</string>
+    <string name="productos">Productos</string>
+    <string name="settings">Ajustes</string>
+    <string name="logout">Cerrar Sesión</string>
+    <string name="bienvenido">¡Bienvenido %s!</string>
+    <string name="accesos_rapidos">Accesos rápidos</string>
+
     <!-- Login -->
     <string name="email">Email</string>
-    <string name="password">Password</string>
+    <string name="password">Contraseña</string>
     <string name="recordarme">Recordarme</string>
     <string name="recuperar_contrasena">Recuperar Contraseña</string>
     <string name="recuperar">Recuperar Usuario/Contraseña</string>
@@ -12,7 +23,7 @@
     <string name="no_tienes_cuenta">¿No tenés cuenta?</string>
     <string name="registrate">Regístrate</string>
 
-    <!-- Registro -->
+    <!-- Registro (Cadenas FALTANTES) -->
     <string name="registro">Registro</string>
     <string name="ingrese_nombre_completo">Ingrese su nombre completo:</string>
     <string name="ingrese_usuario">Ingrese un usuario:</string>
@@ -23,15 +34,6 @@
     <string name="hint_password">Mín 8 caract. alfanuméricos y 1 signo</string>
     <string name="continuar">Continuar</string>
 
-    <!-- Home -->
-    <string name="bienvenido">¡Bienvenido %s!</string>
-    <string name="accesos_rapidos">Accesos rápidos</string>
-    <string name="ventas">Ventas</string>
-    <string name="reparaciones">Reparaciones</string>
-    <string name="clientes">Clientes</string>
-    <string name="productos">Productos</string>
-    <string name="cerrar_sesion">Cerrar Sesión</string>
-
     <!-- Nueva Venta -->
     <string name="nueva_venta">Nueva venta</string>
     <string name="ver_todas_ventas">Ver todas las ventas</string>
@@ -40,14 +42,9 @@
     <string name="localidad">Localidad</string>
     <string name="codigo_postal">Código Postal</string>
     <string name="agregar_producto">Agregar un producto</string>
-    <string name="canilla_dispenser">Canilla para dispenser</string>
-    <string name="filtro_carbon">Filtro Carbón Activado</string>
     <string name="anadir_otro">Añadir otro</string>
     <string name="sub_total">Sub-Total:</string>
-    <string name="subtotal">Sub-Total:</string>
     <string name="total">Total:</string>
-    <string name="cancelar">Cancelar</string>
-    <string name="guardar">Guardar</string>
     <string name="venta_generada">¡Venta generada con éxito!</string>
     <string name="enviar_whatsapp">Enviar por WhatsApp</string>
 
@@ -61,6 +58,8 @@
     <string name="ver_todos_clientes">Ver todos los clientes</string>
     <string name="id_auto">ID AUTO-INCREMENT</string>
     <string name="nombre_cliente">Nombre del Cliente</string>
+    <string name="guardar">Guardar</string>
+    <string name="cancelar">Cancelar</string>
 
     <!-- Productos -->
     <string name="ver_todos_productos">Ver todos los productos</string>
@@ -68,17 +67,4 @@
     <string name="precio">Precio:</string>
     <string name="cantidad">Cantidad</string>
     <string name="producto_guardado">¡Producto guardado con éxito!</string>
-
-    <!-- Bottom Navigation -->
-    <string name="nav_inicio">Inicio</string>
-    <string name="nav_ventas">Ventas</string>
-    <string name="nav_reparaciones">Reparaciones</string>
-    <string name="nav_clientes">Clientes</string>
-    <string name="nav_productos">Productos</string>
-
-    <!-- Mensajes -->
-    <string name="cliente_requerido">Debes seleccionar un cliente</string>
-    <string name="producto_requerido">Debes agregar al menos un producto</string>
-    <string name="venta_guardada">Venta guardada exitosamente</string>
-    <string name="error_guardar">Error al guardar la venta</string>
 </resources>

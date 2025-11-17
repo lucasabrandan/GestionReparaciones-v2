@@ -17,27 +17,47 @@ import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
 import com.example.gestionreparacionesapp.data.db.entity.Usuario;
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
 
-@Database(entities = {Usuario.class, Cliente.class, Producto.class, Venta.class, Reparacion.class},
-        version = 1,
-        exportSchema = false)
+/**
+ * Clase abstracta que define la configuración de la base de datos Room.
+ * Incluye todas las entidades y DAOs necesarios para la aplicación.
+ * Implementa el patrón Singleton.
+ */
+@Database(entities = {
+        Usuario.class,
+        Cliente.class,
+        Producto.class,
+        Venta.class,
+        Reparacion.class
+}, version = 2, exportSchema = false) // <--- ¡VERSIÓN INCREMENTADA A 2!
 public abstract class AppDatabase extends RoomDatabase {
 
-    private static AppDatabase instance;
-
+    // Lista de DAOs que Room debe proporcionar
     public abstract UsuarioDao usuarioDao();
     public abstract ClienteDao clienteDao();
     public abstract ProductoDao productoDao();
     public abstract VentaDao ventaDao();
     public abstract ReparacionDao reparacionDao();
 
-    public static synchronized AppDatabase getInstance(Context context) {
-        if (instance == null) {
-            instance = Room.databaseBuilder(context.getApplicationContext(),
-                            AppDatabase.class, "reparaciones_db")
-                    .allowMainThreadQueries()
-                    .fallbackToDestructiveMigration()
-                    .build();
+    // Usamos 'volatile' para garantizar la visibilidad del Singleton
+    private static volatile AppDatabase INSTANCE;
+    private static final String DATABASE_NAME = "gestion_reparaciones_db";
+
+    /**
+     * Devuelve la instancia Singleton de la base de datos.
+     */
+    public static AppDatabase getInstance(final Context context) {
+        if (INSTANCE == null) {
+            synchronized (AppDatabase.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
+                                    AppDatabase.class, DATABASE_NAME)
+                            .allowMainThreadQueries()
+                            // Borra la DB antigua porque cambiamos la versión
+                            .fallbackToDestructiveMigration()
+                            .build();
+                }
+            }
         }
-        return instance;
+        return INSTANCE;
     }
 }

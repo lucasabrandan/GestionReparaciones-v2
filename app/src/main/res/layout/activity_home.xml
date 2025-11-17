@@ -1,86 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:background="@color/background"
-    android:gravity="center">
+    android:fitsSystemWindows="true"
+    android:background="?attr/android:colorBackground"
+    tools:context=".ui.home.HomeActivity">
 
-    <TextView
-        android:id="@+id/tvBienvenida"
+    <!-- 1. ToolBar Superior (ID: toolbar) -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="¡Bienvenido Esteban!"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="@color/black"
-        android:gravity="center"
-        android:layout_marginTop="40dp"
-        android:layout_marginBottom="40dp" />
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        app:titleTextColor="?attr/colorOnPrimary"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
+        android:elevation="4dp" />
 
-    <TextView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/accesos_rapidos"
-        android:textSize="16sp"
-        android:textColor="@color/gray_text"
-        android:gravity="start"
-        android:layout_marginBottom="16dp" />
-
-    <Button
-        android:id="@+id/btnVentas"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="@string/ventas"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:backgroundTint="@color/blue_button"
-        android:layout_marginBottom="12dp" />
-
-    <Button
-        android:id="@+id/btnReparaciones"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="@string/reparaciones"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:backgroundTint="@color/blue_button"
-        android:layout_marginBottom="12dp" />
-
-    <Button
-        android:id="@+id/btnClientes"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="@string/clientes"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:backgroundTint="@color/blue_button"
-        android:layout_marginBottom="12dp" />
-
-    <Button
-        android:id="@+id/btnProductos"
-        android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:text="@string/productos"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:backgroundTint="@color/blue_button"
-        android:layout_marginBottom="40dp" />
-
-    <View
+    <!-- 2. Contenedor Principal de Fragments (ID: fragmentContainer) -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/fragmentContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
-    <Button
-        android:id="@+id/btnCerrarSesion"
-        android:layout_width="wrap_content"
-        android:layout_height="56dp"
-        android:text="@string/cerrar_sesion"
-        android:textColor="@color/white"
-        android:backgroundTint="@color/red_button"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp" />
+    <!-- 3. Barra de Navegación Inferior (ID: bottom_navigation) -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        app:menu="@menu/menu_bottom_nav" /> <!-- Usa el menú que crearemos a continuación -->
 
 </LinearLayout>

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Ícono de Casa -->
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home_black_24dp"
+        android:title="@string/inicio" />
+
+    <!-- Ícono de Venta / Carrito -->
+    <item
+        android:id="@+id/nav_ventas"
+        android:icon="@drawable/ic_ventas"
+        android:title="@string/ventas" />
+
+    <!-- Ícono de Reparaciones / Llave o Herramienta -->
+    <item
+        android:id="@+id/nav_reparaciones"
+        android:icon="@drawable/ic_reparaciones"
+        android:title="@string/reparaciones" />
+
+    <!-- Ícono de Clientes / Persona o Contacto -->
+    <item
+        android:id="@+id/nav_clientes"
+        android:icon="@drawable/ic_clientes"
+        android:title="@string/clientes" />
+
+    <!-- Ícono de Productos / Caja o Ítem -->
+    <item
+        android:id="@+id/nav_productos"
+        android:icon="@drawable/ic_productos"
+        android:title="@string/productos" />
+</menu>

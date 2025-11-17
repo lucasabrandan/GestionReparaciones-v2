@@ -10,69 +10,37 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Material3.Light"
-        tools:targetApi="31">
 
-        <!-- Login Activity (MAIN) -->
-        <activity
-            android:name=".ui.login.LoginActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+    android:theme="@style/Theme.GestionReparacionesApp"
 
-        <!-- Registro Activity -->
-        <activity
-            android:name=".ui.registro.RegistroActivity"
-            android:exported="false" />
+    tools:targetApi="31">
 
-        <!-- Home Activity -->
-        <activity
-            android:name=".ui.home.HomeActivity"
-            android:exported="false" />
+    <!-- Login Activity (Punto de entrada) -->
+    <activity
+        android:name=".ui.login.LoginActivity"
+        android:exported="true">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter>
+    </activity>
 
-        <!-- Clientes Activity -->
-        <activity
-            android:name=".ui.clientes.ClientesActivity"
-            android:exported="false" />
+    <!-- Registro Activity -->
+    <activity
+        android:name=".ui.registro.RegistroActivity"
+        android:exported="false" />
 
-        <!-- Productos Activity -->
-        <activity
-            android:name=".ui.productos.ProductosActivity"
-            android:exported="false" />
+    <!-- Home Activity (Contenedora de Fragments) -->
+    <activity
+        android:name=".ui.home.HomeActivity"
+        android:exported="false" />
 
-        <!-- Nueva Venta Activity -->
-        <activity
-            android:name=".ui.ventas.NuevaVentaActivity"
-            android:exported="false" />
+    <!--
+      ELIMINADAS: Todas las demás Activities (ClientesActivity,
+      ListaVentasActivity, NuevaReparacionActivity, etc.)
+      han sido eliminadas para adoptar la arquitectura de Fragments.
+    -->
 
-        <!-- Nueva Reparacion Activity -->
-        <activity
-            android:name=".ui.reparaciones.NuevaReparacionActivity"
-            android:exported="false" />
+</application>
 
-        <!-- Lista Clientes Activity -->
-        <activity
-            android:name=".ui.clientes.ListaClientesActivity"
-            android:exported="false" />
-
-        <!-- Lista Productos Activity -->
-        <activity
-            android:name=".ui.productos.ListaProductosActivity"
-            android:exported="false" />
-
-        <!-- Lista Ventas Activity -->
-        <activity
-            android:name=".ui.ventas.ListaVentasActivity"
-            android:exported="false" />
-
-        <!-- Lista Reparaciones Activity -->
-        <activity
-            android:name=".ui.reparaciones.ListaReparacionesActivity"
-            android:exported="false" />
-
-    </application>
-
-</manifest>
+    </manifest>

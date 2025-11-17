@@ -1,141 +1,118 @@
 package com.example.gestionreparacionesapp.ui.login;
 
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.util.Patterns;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.example.gestionreparacionesapp.R;
-import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.entity.Usuario;
+import com.example.gestionreparacionesapp.data.util.ResultadoLogin;
 import com.example.gestionreparacionesapp.ui.home.HomeActivity;
 import com.example.gestionreparacionesapp.ui.registro.RegistroActivity;
-import com.example.gestionreparacionesapp.util.PasswordUtils;
-import com.google.android.material.button.MaterialButton;
-import com.google.android.material.switchmaterial.SwitchMaterial;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
+
+import com.google.android.material.switchmaterial.SwitchMaterial; // <--- ¡NUEVO IMPORT CLAVE!
 
 public class LoginActivity extends AppCompatActivity {
 
-    private TextInputLayout tilEmail, tilPassword;
-    private TextInputEditText etEmail, etPassword;
-    private SwitchMaterial switchRecordarme;
-    private MaterialButton btnIngresar;
-    private TextView tvRegistrate, tvRecuperar;
+    private EditText etEmail, etPassword;
+    private Button btnIngresar;
+    private TextView tvRegistrate;
 
-    private AppDatabase db;
-    private SharedPreferences prefs;
+    // CORRECCIÓN: Usar SwitchMaterial en lugar de android.widget.Switch
+    private SwitchMaterial swRecordarme;
+
+    private LoginViewModel viewModel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        db = AppDatabase.getInstance(this);
-        prefs = getSharedPreferences("user_prefs", MODE_PRIVATE);
+        viewModel = new ViewModelProvider(this).get(LoginViewModel.class);
 
         initViews();
-        checkRecordarme();
         setupListeners();
+        setupObservers();
+
+        // 1. Verificar si hay un usuario recordado (para inicio rápido)
+        viewModel.getRememberedUser().observe(this, usuario -> {
+            if (usuario != null) {
+                // Si hay un usuario recordado, iniciar HomeActivity directamente
+                handleSuccessfulLogin(usuario);
+            }
+        });
     }
 
     private void initViews() {
-        tilEmail = findViewById(R.id.tilEmail);
-        tilPassword = findViewById(R.id.tilPassword);
         etEmail = findViewById(R.id.etEmail);
         etPassword = findViewById(R.id.etPassword);
-        switchRecordarme = findViewById(R.id.switchRecordarme);
         btnIngresar = findViewById(R.id.btnIngresar);
         tvRegistrate = findViewById(R.id.tvRegistrate);
-        tvRecuperar = findViewById(R.id.tvRecuperar);
-    }
-
-    private void checkRecordarme() {
-        Usuario usuario = db.usuarioDao().getUsuarioRecordado();
-        if (usuario != null) {
-            Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-            intent.putExtra("usuario_nombre", usuario.getNombreCompleto());
-            intent.putExtra("usuario_id", usuario.getId());
-            startActivity(intent);
-            finish();
-        }
+        // CORRECCIÓN: El cast implícito ahora es a SwitchMaterial
+        swRecordarme = findViewById(R.id.swRecordarme);
     }
 
     private void setupListeners() {
-        btnIngresar.setOnClickListener(v -> login());
+        btnIngresar.setOnClickListener(v -> attemptLogin());
 
         tvRegistrate.setOnClickListener(v -> {
             Intent intent = new Intent(LoginActivity.this, RegistroActivity.class);
             startActivity(intent);
         });
 
-        tvRecuperar.setOnClickListener(v -> {
-            // TODO: implementar flujo de recuperación más adelante
-            Toast.makeText(this, "Funcionalidad de recuperación en desarrollo", Toast.LENGTH_SHORT).show();
+        swRecordarme.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            viewModel.setRememberMe(isChecked);
         });
     }
 
-    private void login() {
-        // Limpiamos errores anteriores
-        tilEmail.setError(null);
-        tilPassword.setError(null);
+    private void setupObservers() {
+        // Observa el resultado del Login
+        viewModel.getLoginResult().observe(this, result -> {
+            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show();
+            if (result.isSuccess) {
+                handleSuccessfulLogin(result.usuario);
+            }
+        });
 
-        String email = etEmail.getText() != null ? etEmail.getText().toString().trim() : "";
-        String password = etPassword.getText() != null ? etPassword.getText().toString() : "";
+        // Observa el estado de 'Recordarme'
+        viewModel.getRememberMe().observe(this, isChecked -> {
+            // Lógica de UI si el estado cambia
+        });
+    }
 
-        // === VALIDACIONES UX ===
-        if (email.isEmpty()) {
-            tilEmail.setError("Ingresá tu email");
-            tilEmail.requestFocus();
+    private void attemptLogin() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        if (email.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            tilEmail.setError("Ingresá un email válido");
-            tilEmail.requestFocus();
-            return;
+        // Delegar la lógica de autenticación al ViewModel
+        viewModel.login(email, password);
+    }
+
+    private void handleSuccessfulLogin(Usuario usuario) {
+        // Lógica de persistencia de sesión
+        boolean shouldRemember = viewModel.getRememberMe().getValue() != null && viewModel.getRememberMe().getValue();
+
+        if (shouldRemember) {
+            viewModel.saveRememberMeState(usuario.getId());
+        } else {
+            viewModel.clearRememberMeState();
         }
 
-        if (password.isEmpty()) {
-            tilPassword.setError("Ingresá tu contraseña");
-            tilPassword.requestFocus();
-            return;
-        }
-
-        // === CONSULTA A LA BASE ===
-        Usuario usuario = db.usuarioDao().findByEmail(email);
-
-        if (usuario == null) {
-            tilEmail.setError("Este email no está registrado");
-            tilEmail.requestFocus();
-            return;
-        }
-
-        // Hasheamos la contraseña ingresada
-        String hashedInput = PasswordUtils.hashPassword(password);
-
-        // Contraseña incorrecta
-        if (!hashedInput.equals(usuario.getPassword())) {
-            tilPassword.setError("Contraseña incorrecta");
-            tilPassword.requestFocus();
-            return;
-        }
-
-        // === LOGIN EXITOSO ===
-        if (switchRecordarme.isChecked()) {
-            db.usuarioDao().limpiarRecordarme();
-            usuario.setRecordarme(true);
-            db.usuarioDao().update(usuario);
-        }
-
+        // Navegar a la pantalla principal
         Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
-        intent.putExtra("usuario_nombre", usuario.getNombreCompleto());
-        intent.putExtra("usuario_id", usuario.getId());
+        intent.putExtra("USER_NAME", usuario.getNombreCompleto());
+
         startActivity(intent);
         finish();
     }

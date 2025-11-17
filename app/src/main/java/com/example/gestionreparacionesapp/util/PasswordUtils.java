@@ -1,19 +1,24 @@
+// Código CORRECTO:
 package com.example.gestionreparacionesapp.util;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+/**
+ * Clase de utilidad para manejar el hashing y verificación de contraseñas.
+ * Utiliza SHA-256 para cumplir con el requisito de seguridad del TP.
+ */
 public class PasswordUtils {
+
+    private static final String HASH_ALGORITHM = "SHA-256";
 
     public static String hashPassword(String plainPassword) {
         try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            MessageDigest digest = MessageDigest.getInstance(HASH_ALGORITHM);
             byte[] hashBytes = digest.digest(plainPassword.getBytes());
             return bytesToHex(hashBytes);
         } catch (NoSuchAlgorithmException e) {
-            // En un TP: si falla, volvemos la contraseña original
-            // (lo ideal sería loguear el error)
-            return plainPassword;
+            throw new RuntimeException("Error en el algoritmo de hashing: " + HASH_ALGORITHM, e);
         }
     }
 
@@ -25,5 +30,11 @@ public class PasswordUtils {
             sb.append(hex);
         }
         return sb.toString();
+    }
+
+    public static boolean checkPassword(String rawPassword, String hashedPassword) {
+        // Hasheamos la contraseña de entrada y comparamos el resultado con el hash almacenado.
+        String newHash = hashPassword(rawPassword);
+        return newHash != null && newHash.equals(hashedPassword);
     }
 }

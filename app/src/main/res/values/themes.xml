@@ -1,21 +1,28 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- El tema principal debe heredar de DayNight.NoActionBar -->
     <style name="Base.Theme.GestionReparacionesApp" parent="Theme.Material3.DayNight.NoActionBar">
 
+        <!-- Colores Principales (Brand Colors - LIGHT) -->
         <item name="colorPrimary">@color/blue_button</item>
         <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/blue_link</item>
 
         <item name="colorSecondary">@color/app_primary_yellow</item>
         <item name="colorOnSecondary">@color/app_dark_brand</item>
 
-        <item name="colorError">@color/app_error_red</item>
-        <item name="colorOnError">@color/white</item>
-
+        <!-- Fondos y Superficies -->
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/on_surface</item>
         <item name="android:colorBackground">@color/background</item>
         <item name="colorOnBackground">@color/on_background</item>
 
+        <item name="colorError">@color/app_error_red</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- Barra de estado y navegación (UX) -->
+        <item name="android:statusBarColor">@color/gray_dark</item>
+        <item name="android:navigationBarColor">@color/gray_dark</item>
 
     </style>
 
