@@ -1,113 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginTop="8dp"
+    android:layout_marginEnd="8dp"
     app:cardCornerRadius="8dp"
     app:cardElevation="4dp">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Encabezado: ID y Fecha -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="8dp">
-
-            <TextView
-                android:id="@+id/tvVentaId"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="VENTA #001"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/blue_button" />
-
-            <TextView
-                android:id="@+id/tvFecha"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="2024-11-14"
-                android:textSize="14sp"
-                android:textColor="@color/gray_text" />
-        </LinearLayout>
-
-        <!-- Cliente -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Cliente: "
-                android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
-
-            <TextView
-                android:id="@+id/tvCliente"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Juan Pérez"
-                android:textSize="14sp"
-                android:textColor="@color/black" />
-        </LinearLayout>
-
-        <!-- Divider -->
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="@color/gray_light"
-            android:layout_marginVertical="8dp" />
-
-        <!-- Productos -->
+        <!-- ID de la Venta (Ej: Venta #101) -->
         <TextView
-            android:id="@+id/tvProductos"
-            android:layout_width="match_parent"
+            android:id="@+id/tvVentaId"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="• Canilla x1\n• Filtro x2"
-            android:textSize="13sp"
-            android:textColor="@color/gray_text"
-            android:layout_marginBottom="8dp" />
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Venta #101" />
 
-        <!-- Total -->
-        <LinearLayout
-            android:layout_width="match_parent"
+        <!-- Nombre del Cliente (Este es uno de los que faltaba) -->
+        <TextView
+            android:id="@+id/tvClienteNombreVenta"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:background="@color/gray_light"
-            android:padding="8dp">
+            android:layout_marginTop="4dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvVentaId"
+            tools:text="Nombre Completo del Cliente" />
 
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="TOTAL:"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/black" />
+        <!-- Fecha de la Venta (Este es el otro que faltaba) -->
+        <TextView
+            android:id="@+id/tvFechaVenta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvClienteNombreVenta"
+            tools:text="2024-05-21 15:30:00" />
 
-            <TextView
-                android:id="@+id/tvTotal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="$103.000"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/green_button" />
-        </LinearLayout>
+        <!-- Total de la Venta -->
+        <TextView
+            android:id="@+id/tvTotalVenta"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceTitleLarge"
+            android:textColor="?attr/colorPrimary"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="$150.75" />
 
-    </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-</androidx.cardview.widget.CardView>
+</com.google.android.material.card.MaterialCardView>

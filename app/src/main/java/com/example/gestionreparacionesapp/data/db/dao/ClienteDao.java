@@ -41,6 +41,6 @@ public interface ClienteDao {
     @Query("SELECT * FROM clientes WHERE userId = :userId AND id IN (SELECT DISTINCT clienteId FROM ventas)")
     List<Cliente> getClientesConVentas(int userId);
 
-    @Query("SELECT * FROM clientes WHERE userId = :userId AND id IN (SELECT DISTINCT clienteId FROM reparaciones)")
+    @Query("SELECT * FROM clientes WHERE userId = :userId AND id IN (SELECT DISTINCT cliente_id FROM reparaciones)")
     List<Cliente> getClientesConReparaciones(int userId);
 }

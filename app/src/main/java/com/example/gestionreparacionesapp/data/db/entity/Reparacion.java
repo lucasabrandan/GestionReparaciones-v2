@@ -1,91 +1,89 @@
 package com.example.gestionreparacionesapp.data.db.entity;
 
-import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.ForeignKey;
-import androidx.room.Ignore;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "reparaciones",
+@Entity(
+        tableName = "reparaciones",
         foreignKeys = {
                 @ForeignKey(entity = Cliente.class,
                         parentColumns = "id",
-                        childColumns = "clienteId",
+                        childColumns = "cliente_id",
                         onDelete = ForeignKey.CASCADE),
-                // Clave foránea al Usuario (para seguridad de datos)
                 @ForeignKey(entity = Usuario.class,
                         parentColumns = "id",
-                        childColumns = "userId",
+                        childColumns = "user_id",
                         onDelete = ForeignKey.CASCADE)
         },
-        indices = {
-                // Índices para mejorar el rendimiento de las búsquedas
-                @Index(value = "clienteId"),
-                @Index(value = "userId")
-        })
+        indices = {@Index("cliente_id"), @Index("user_id")}
+)
 public class Reparacion {
 
     @PrimaryKey(autoGenerate = true)
     private int id;
 
-    // ID del usuario dueño de esta reparación
+    @ColumnInfo(name = "user_id")
     private int userId;
 
+    @ColumnInfo(name = "cliente_id")
     private int clienteId;
-    @NonNull
+
     private String fecha;
-    @NonNull
     private String descripcion;
-    private double subtotal;
-    private double total;
-    @NonNull
+    private String estado;
     private String productosJson;
+    private double subtotal; // Coste de los productos
 
-    @Ignore // Soluciona el warning de Room
-    public Reparacion() {
-        this.fecha = "";
-        this.descripcion = "";
-        this.productosJson = "[]";
-    }
+    @ColumnInfo(name = "coste_servicio")
+    private double costeServicio; // Coste de la mano de obra
 
-    // Constructor principal (ahora con userId)
-    public Reparacion(int userId, int clienteId, @NonNull String fecha, @NonNull String descripcion, double subtotal, double total, @NonNull String productosJson) {
+    private double total; // Coste total (productos + servicio)
+
+    // Room usará este constructor. No es necesario tener otros constructores con @Ignore.
+    public Reparacion(int userId, int clienteId, String fecha, String descripcion, String estado, String productosJson, double subtotal, double costeServicio, double total) {
         this.userId = userId;
         this.clienteId = clienteId;
         this.fecha = fecha;
         this.descripcion = descripcion;
-        this.subtotal = subtotal;
-        this.total = total;
+        this.estado = estado;
         this.productosJson = productosJson;
-    }
-
-    // Constructor para el ViewModel (no necesita userId, el Repo lo asigna)
-    @Ignore
-    public Reparacion(int clienteId, @NonNull String fecha, @NonNull String descripcion, double subtotal, double total, @NonNull String productosJson) {
-        this.clienteId = clienteId;
-        this.fecha = fecha;
-        this.descripcion = descripcion;
         this.subtotal = subtotal;
+        this.costeServicio = costeServicio;
         this.total = total;
-        this.productosJson = productosJson;
     }
 
     // --- Getters y Setters ---
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
+
     public int getUserId() { return userId; }
     public void setUserId(int userId) { this.userId = userId; }
+
     public int getClienteId() { return clienteId; }
     public void setClienteId(int clienteId) { this.clienteId = clienteId; }
-    @NonNull public String getFecha() { return fecha; }
-    public void setFecha(@NonNull String fecha) { this.fecha = fecha; }
-    @NonNull public String getDescripcion() { return descripcion; }
-    public void setDescripcion(@NonNull String descripcion) { this.descripcion = descripcion; }
+
+    public String getFecha() { return fecha; }
+    public void setFecha(String fecha) { this.fecha = fecha; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
+
+    public String getEstado() { return estado; }
+    public void setEstado(String estado) { this.estado = estado; }
+
+    public String getProductosJson() { return productosJson; }
+    public void setProductosJson(String productosJson) { this.productosJson = productosJson; }
+
     public double getSubtotal() { return subtotal; }
     public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
+
+    public double getCosteServicio() { return costeServicio; }
+    public void setCosteServicio(double costeServicio) { this.costeServicio = costeServicio; }
+
     public double getTotal() { return total; }
     public void setTotal(double total) { this.total = total; }
-    @NonNull public String getProductosJson() { return productosJson; }
-    public void setProductosJson(@NonNull String productosJson) { this.productosJson = productosJson; }
 }

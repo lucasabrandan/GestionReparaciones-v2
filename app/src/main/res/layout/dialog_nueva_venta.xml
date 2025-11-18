@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Fila Cliente -->
+        <!-- Fila para Cliente -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -18,14 +18,14 @@
             android:orientation="horizontal">
 
             <Spinner
-                android:id="@+id/spinnerClienteReparacion"
+                android:id="@+id/spinnerClienteVenta"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:minHeight="48dp" />
 
             <Button
-                android:id="@+id/btnNuevoClienteDialog"
+                android:id="@+id/btnNuevoClienteVentaDialog"
                 style="@style/Widget.Material3.Button.OutlinedButton.Icon"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -34,34 +34,21 @@
                 app:icon="@drawable/ic_person_add" />
         </LinearLayout>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:hint="Descripción del trabajo">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDescripcionReparacion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="textMultiLine"
-                android:minLines="2" />
-        </com.google.android.material.textfield.TextInputLayout>
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Productos Utilizados"
+            android:text="Productos a Vender"
             android:textAppearance="?attr/textAppearanceTitleMedium" />
 
+        <!-- Contenedor para las filas de productos -->
         <LinearLayout
-            android:id="@+id/containerProductosReparacion"
+            android:id="@+id/containerProductosVenta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical" />
 
-        <!-- Fila Botones Producto -->
+        <!-- Fila para botones de Producto -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -69,7 +56,7 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/btnAnadirProductoReparacion"
+                android:id="@+id/btnAnadirProductoVenta"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -77,7 +64,7 @@
                 app:icon="@drawable/ic_add" />
 
             <Button
-                android:id="@+id/btnNuevoProductoReparacionDialog"
+                android:id="@+id/btnNuevoProductoVentaDialog"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -94,32 +81,10 @@
             android:layout_marginBottom="16dp"
             android:background="?android:attr/listDivider" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Coste del Servicio (Mano de Obra)">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCosteServicio"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal" />
-        </com.google.android.material.textfield.TextInputLayout>
-
         <TextView
-            android:id="@+id/tvSubtotalReparacion"
+            android:id="@+id/tvTotalVenta"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:gravity="end"
-            android:text="Subtotal Productos: $0.00"
-            android:textAppearance="?attr/textAppearanceBodyLarge" />
-
-        <TextView
-            android:id="@+id/tvTotalReparacion"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:gravity="end"
             android:text="TOTAL: $0.00"
             android:textAppearance="?attr/textAppearanceTitleLarge"
@@ -133,7 +98,7 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/btnCancelarReparacionDialog"
+                android:id="@+id/btnCancelarVentaDialog"
                 style="@style/Widget.Material3.Button.TextButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -141,7 +106,7 @@
                 android:text="Cancelar" />
 
             <Button
-                android:id="@+id/btnGuardarReparacionDialog"
+                android:id="@+id/btnGuardarVentaDialog"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Guardar" />

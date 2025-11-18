@@ -25,7 +25,6 @@ public class ProductoViewModel extends AndroidViewModel {
 
     public ProductoViewModel(@NonNull Application application) {
         super(application);
-        // CAMBIO: Pasamos el contexto (Application) al Repositorio
         this.repository = new ProductoRepository(
                 AppDatabase.getInstance(application).productoDao(),
                 application
@@ -44,19 +43,29 @@ public class ProductoViewModel extends AndroidViewModel {
         }
     }
 
+    // --- MÉTODO NUEVO AÑADIDO PARA SIMPLIFICAR ---
+    /**
+     * Un método más simple para guardar/insertar un producto desde diálogos rápidos.
+     * Llama internamente a insertarProducto con valores por defecto para los campos no presentes.
+     */
+    public void guardarProducto(String sku, String nombre, String precioStr, String cantidadStr) {
+        // Llama al método principal de inserción pasando null para la imagen.
+        insertarProducto(sku, nombre, precioStr, cantidadStr, null);
+    }
+
+
     /**
      * Inserta un nuevo producto (YA NO NECESITA userId, lo toma de la sesión).
      */
     public void insertarProducto(String sku, String nombre, String precioStr, String cantidadStr, @Nullable String imageUri) {
-        if (sku.isEmpty() || nombre.isEmpty() || precioStr.isEmpty() || cantidadStr.isEmpty()) {
-            operationResult.setValue(new ResultadoRegistro(false, "Todos los campos son obligatorios"));
+        if (nombre.isEmpty() || precioStr.isEmpty() || cantidadStr.isEmpty()) {
+            operationResult.setValue(new ResultadoRegistro(false, "Nombre, precio y cantidad son obligatorios"));
             return;
         }
         try {
             double precio = Double.parseDouble(precioStr);
             int cantidad = Integer.parseInt(cantidadStr);
 
-            // CAMBIO: El constructor ya no lleva userId, el Repo lo asigna
             Producto producto = new Producto(sku, nombre, precio, cantidad, imageUri);
             repository.insertProducto(producto, result -> {
                 operationResult.postValue(result);
@@ -79,7 +88,6 @@ public class ProductoViewModel extends AndroidViewModel {
             double precio = Double.parseDouble(precioStr);
             int cantidad = Integer.parseInt(cantidadStr);
 
-            // CAMBIO: El constructor ya no lleva userId, el Repo lo asigna
             Producto producto = new Producto(sku, nombre, precio, cantidad, imageUri);
             producto.setId(productoId);
 

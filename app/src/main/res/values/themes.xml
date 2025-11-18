@@ -27,4 +27,11 @@
     </style>
 
     <style name="Theme.GestionReparacionesApp" parent="Base.Theme.GestionReparacionesApp" />
-</resources>
+
+<!-- TEMA QUE FALTA - Añade este bloque completo -->
+    <style name="Theme.GestionReparacionesApp.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+        </resources>

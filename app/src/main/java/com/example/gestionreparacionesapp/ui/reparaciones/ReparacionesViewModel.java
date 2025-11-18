@@ -15,7 +15,6 @@ import com.example.gestionreparacionesapp.data.repository.ReparacionRepository;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta;
 
-
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -36,7 +35,6 @@ public class ReparacionesViewModel extends AndroidViewModel {
 
     public ReparacionesViewModel(@NonNull Application application) {
         super(application);
-        // Pasamos el Context al Repositorio para que pueda leer el userId de la sesión
         this.repository = new ReparacionRepository(
                 AppDatabase.getInstance(application).reparacionDao(),
                 application
@@ -56,9 +54,9 @@ public class ReparacionesViewModel extends AndroidViewModel {
     }
 
     /**
-     * Guarda una nueva reparación. (YA NO NECESITA userId, lo toma de la sesión)
+     * Guarda una nueva reparación, incluyendo el coste del servicio.
      */
-    public void guardarReparacion(Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos) {
+    public void guardarReparacion(Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos, double costeServicio) {
         if (clienteSeleccionado == null) {
             operationResult.setValue(new ResultadoRegistro(false, "Debe seleccionar un cliente"));
             return;
@@ -68,17 +66,29 @@ public class ReparacionesViewModel extends AndroidViewModel {
             return;
         }
 
-        double subtotal = 0;
+        double subtotalProductos = 0;
         for (ProductoVenta pv : productos) {
-            subtotal += pv.getSubtotal();
+            subtotalProductos += pv.getSubtotal();
         }
-        double total = subtotal;
+
+        // CÁLCULO ACTUALIZADO: El total es la suma de los productos + el coste del servicio.
+        double totalFinal = subtotalProductos + costeServicio;
 
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        // Usamos el constructor sin userId (el Repo lo asigna)
-        Reparacion reparacion = new Reparacion(clienteSeleccionado.getId(), fecha, descripcion, subtotal, total, productosJson);
+        // Usamos el constructor actualizado de la entidad Reparacion
+        Reparacion reparacion = new Reparacion(
+                0, // userId lo pone el repo
+                clienteSeleccionado.getId(),
+                fecha,
+                descripcion,
+                "Pendiente", // Estado por defecto
+                productosJson,
+                subtotalProductos,
+                costeServicio,
+                totalFinal
+        );
 
         repository.insertReparacion(reparacion, result -> {
             operationResult.postValue(result);
@@ -87,26 +97,37 @@ public class ReparacionesViewModel extends AndroidViewModel {
     }
 
     /**
-     * Actualiza una reparación (YA NO NECESITA userId).
+     * Actualiza una reparación existente, incluyendo el coste del servicio.
      */
-    public void actualizarReparacion(int reparacionId, Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos) {
+    public void actualizarReparacion(int reparacionId, Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos, double costeServicio) {
         if (clienteSeleccionado == null) {
             operationResult.setValue(new ResultadoRegistro(false, "Debe seleccionar un cliente"));
             return;
         }
 
-        double subtotal = 0;
+        double subtotalProductos = 0;
         for (ProductoVenta pv : productos) {
-            subtotal += pv.getSubtotal();
+            subtotalProductos += pv.getSubtotal();
         }
-        double total = subtotal;
+
+        // CÁLCULO ACTUALIZADO
+        double totalFinal = subtotalProductos + costeServicio;
 
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        // Usamos el constructor sin userId (el Repo lo asigna)
-        Reparacion reparacion = new Reparacion(clienteSeleccionado.getId(), fecha, descripcion, subtotal, total, productosJson);
-        reparacion.setId(reparacionId);
+        Reparacion reparacion = new Reparacion(
+                0, // userId
+                clienteSeleccionado.getId(),
+                fecha,
+                descripcion,
+                "Actualizado", // Puedes manejar el estado como prefieras
+                productosJson,
+                subtotalProductos,
+                costeServicio,
+                totalFinal
+        );
+        reparacion.setId(reparacionId); // ¡Importante para que sepa cuál actualizar!
 
         repository.updateReparacion(reparacion, result -> {
             operationResult.postValue(result);

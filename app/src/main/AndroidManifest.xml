@@ -2,14 +2,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- PERMISO DE INTERNET (Para Geocoder) -->
-    <uses-feature
-        android:name="android.hardware.camera"
-        android:required="false" />
+    <!-- Permisos que tu app podría necesitar, como Internet o acceso a la cámara -->
     <uses-permission android:name="android.permission.INTERNET" />
-
-    <!-- PERMISO DE CÁMARA (Para Productos) -->
-    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.CAMERA"/>
 
     <application
         android:allowBackup="true"
@@ -21,27 +19,17 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.GestionReparacionesApp"
         tools:targetApi="31">
-
-        <!-- Login Activity (Punto de entrada) -->
         <activity
-            android:name=".ui.login.LoginActivity"
-            android:exported="true">
+            android:name=".ui.home.HomeActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.GestionReparacionesApp.NoActionBar"
+            android:screenOrientation="portrait">  <!-- LÍNEA CLAVE PARA BLOQUEAR ROTACIÓN -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Registro Activity -->
-        <activity
-            android:name=".ui.registro.RegistroActivity"
-            android:exported="false" />
-
-        <!-- Home Activity (Contenedora de Fragments) -->
-        <activity
-            android:name=".ui.home.HomeActivity"
-            android:exported="false" />
-
     </application>
 
 </manifest>

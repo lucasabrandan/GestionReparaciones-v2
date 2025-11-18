@@ -4,40 +4,43 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.gestionreparacionesapp.R;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-
 import java.util.List;
 import java.util.Locale;
 
 public class VentasAdapter extends RecyclerView.Adapter<VentasAdapter.VentaViewHolder> {
 
-    private List<Venta> listaVentas;
-    private List<Cliente> listaClientes;
+    private List<Venta> ventas;
+    private List<Cliente> clientes;
     private final OnVentaInteractionListener listener;
 
-    // --- INTERFAZ AÑADIDA PARA MANEJAR CLICS ---
-    public interface OnVentaInteractionListener {
-        void onVentaClick(Venta venta); // Para editar
-        void onVentaLongClick(Venta venta); // Para borrar
-    }
-    // ------------------------------------------
-
-    // --- CONSTRUCTOR MODIFICADO ---
-    public VentasAdapter(List<Venta> listaVentas, List<Cliente> listaClientes, OnVentaInteractionListener listener) {
-        this.listaVentas = listaVentas;
-        this.listaClientes = listaClientes;
+    public VentasAdapter(List<Venta> ventas, List<Cliente> clientes, OnVentaInteractionListener listener) {
+        this.ventas = ventas;
+        this.clientes = clientes;
         this.listener = listener;
     }
-    // ----------------------------
+
+    // --- MÉTODO QUE FALTA ---
+    // Añade este método completo a tu clase
+    public void setVentas(List<Venta> nuevasVentas) {
+        this.ventas.clear();
+        this.ventas.addAll(nuevasVentas);
+        notifyDataSetChanged();
+    }
+
+    // También es buena práctica tener un método para actualizar los clientes
+    public void setClientes(List<Cliente> nuevosClientes) {
+        this.clientes.clear();
+        this.clientes.addAll(nuevosClientes);
+        notifyDataSetChanged(); // Es importante notificar para que se actualicen los nombres
+    }
+    // --- FIN DE LOS MÉTODOS A AÑADIR ---
+
 
     @NonNull
     @Override
@@ -48,88 +51,54 @@ public class VentasAdapter extends RecyclerView.Adapter<VentasAdapter.VentaViewH
 
     @Override
     public void onBindViewHolder(@NonNull VentaViewHolder holder, int position) {
-        Venta venta = listaVentas.get(position);
-
-        holder.tvVentaId.setText(String.format("VENTA #%03d", venta.getId()));
-
-        String fecha = venta.getFecha();
-        if (fecha != null && fecha.contains(" ")) {
-            fecha = fecha.split(" ")[0]; // Solo la fecha, sin hora
-        }
-        holder.tvFecha.setText(fecha);
-
-        String nombreCliente = "Cliente desconocido";
-        if (listaClientes != null) {
-            for (Cliente c : listaClientes) {
-                if (c.getId() == venta.getClienteId()) {
-                    nombreCliente = c.getNombre();
-                    break;
-                }
-            }
-        }
-        holder.tvCliente.setText(nombreCliente);
-
-        String productosTexto = parsearProductos(venta.getProductosJson());
-        holder.tvProductos.setText(productosTexto);
-
-        holder.tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", venta.getTotal()));
-
-        // --- LISTENERS AÑADIDOS PARA CLIC Y CLIC LARGO ---
-        holder.itemView.setOnClickListener(v -> listener.onVentaClick(venta));
-        holder.itemView.setOnLongClickListener(v -> {
-            listener.onVentaLongClick(venta);
-            return true; // Importante: consume el evento
-        });
-        // -------------------------------------------------
+        Venta venta = ventas.get(position);
+        holder.bind(venta, listener);
     }
 
     @Override
     public int getItemCount() {
-        return listaVentas != null ? listaVentas.size() : 0;
+        return ventas != null ? ventas.size() : 0;
     }
 
-    private String parsearProductos(String productosJson) {
-        if (productosJson == null) return "No hay productos";
-        StringBuilder resultado = new StringBuilder();
-        try {
-            JSONArray array = new JSONArray(productosJson);
-            for (int i = 0; i < array.length(); i++) {
-                JSONObject producto = array.getJSONObject(i);
-                String nombre = producto.optString("nombre", "N/A");
-                int cantidad = producto.optInt("cantidad", 0);
-                resultado.append("• ").append(nombre).append(" x").append(cantidad);
-                if (i < array.length() - 1) {
-                    resultado.append("\n");
-                }
-            }
-        } catch (Exception e) {
-            resultado.append("Error al cargar productos");
-        }
-        return resultado.toString();
-    }
-
-    public void setVentasYClientes(List<Venta> nuevasVentas, List<Cliente> todosLosClientes) {
-        if (this.listaVentas != null) {
-            this.listaVentas.clear();
-            this.listaVentas.addAll(nuevasVentas);
-        }
-        if (this.listaClientes != null) {
-            this.listaClientes.clear();
-            this.listaClientes.addAll(todosLosClientes);
-        }
-        notifyDataSetChanged();
-    }
-
-    static class VentaViewHolder extends RecyclerView.ViewHolder {
-        TextView tvVentaId, tvFecha, tvCliente, tvProductos, tvTotal;
+    // Clase interna ViewHolder
+    class VentaViewHolder extends RecyclerView.ViewHolder {
+        // IDs de tu item_venta.xml
+        private TextView tvVentaId, tvClienteNombre, tvFecha, tvTotal;
 
         public VentaViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvVentaId = itemView.findViewById(R.id.tvVentaId);
-            tvFecha = itemView.findViewById(R.id.tvFecha);
-            tvCliente = itemView.findViewById(R.id.tvCliente);
-            tvProductos = itemView.findViewById(R.id.tvProductos);
-            tvTotal = itemView.findViewById(R.id.tvTotal);
+            tvVentaId = itemView.findViewById(R.id.tvVentaId); // Asegúrate de que este ID exista
+            tvClienteNombre = itemView.findViewById(R.id.tvClienteNombreVenta); // Asegúrate de que este ID exista
+            tvFecha = itemView.findViewById(R.id.tvFechaVenta); // Asegúrate de que este ID exista
+            tvTotal = itemView.findViewById(R.id.tvTotalVenta); // Asegúrate de que este ID exista
         }
+
+        public void bind(final Venta venta, final OnVentaInteractionListener listener) {
+            tvVentaId.setText(String.format(Locale.getDefault(), "Venta #%d", venta.getId()));
+            tvFecha.setText(venta.getFecha());
+            tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", venta.getTotal()));
+
+            // Buscar nombre del cliente
+            String nombreCliente = "Cliente no encontrado";
+            for (Cliente cliente : clientes) {
+                if (cliente.getId() == venta.getClienteId()) {
+                    nombreCliente = cliente.getNombre();
+                    break;
+                }
+            }
+            tvClienteNombre.setText(nombreCliente);
+
+            itemView.setOnClickListener(v -> listener.onVentaClick(venta));
+            itemView.setOnLongClickListener(v -> {
+                listener.onVentaLongClick(venta);
+                return true;
+            });
+        }
+    }
+
+    // Interfaz de interacción
+    public interface OnVentaInteractionListener {
+        void onVentaClick(Venta venta);
+        void onVentaLongClick(Venta venta);
     }
 }
