@@ -153,4 +153,41 @@ public class ReparacionRepository {
         @Override
         protected void onPostExecute(List<Reparacion> result) { if (callback != null) callback.onComplete(result); }
     }
+
+    // --- OBTENER POR ID (NUEVO MÉTODO) ---
+    /**
+     * Obtiene una única reparación por su ID. Necesario para el modo de edición.
+     * @param reparacionId El ID de la reparación a buscar.
+     * @param callback El callback para devolver el resultado.
+     */
+    public void getReparacionById(int reparacionId, RepositoryCallback<Reparacion> callback) {
+        new GetReparacionByIdAsyncTask(reparacionDao, callback, context).execute(reparacionId);
+    }
+
+    private static class GetReparacionByIdAsyncTask extends AsyncTask<Integer, Void, Reparacion> {
+        private final ReparacionDao asyncDao;
+        private final RepositoryCallback<Reparacion> callback;
+        private final int userId;
+
+        GetReparacionByIdAsyncTask(ReparacionDao dao, RepositoryCallback<Reparacion> callback, Context context) {
+            this.asyncDao = dao;
+            this.callback = callback;
+            this.userId = SessionManager.getUserId(context);
+        }
+
+        @Override
+        protected Reparacion doInBackground(Integer... params) {
+            if (userId == -1 || params.length == 0) return null;
+            int reparacionId = params[0];
+            // Llamamos a un método en el DAO que debe buscar por ID y por userId para seguridad.
+            return asyncDao.getReparacionById(reparacionId, userId);
+        }
+
+        @Override
+        protected void onPostExecute(Reparacion result) {
+            if (callback != null) {
+                callback.onComplete(result);
+            }
+        }
+    }
 }

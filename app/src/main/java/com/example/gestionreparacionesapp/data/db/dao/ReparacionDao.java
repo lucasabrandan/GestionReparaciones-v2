@@ -54,11 +54,12 @@ public interface ReparacionDao {
     List<Reparacion> buscar(String query, int userId);
 
     /**
-     * Obtiene una reparación por su ID.
+     * Obtiene una reparación por su ID, asegurando que pertenezca al usuario en sesión.
+     * Es el método que usa el Repositorio para el modo de edición.
      * @param id el ID de la reparación a buscar.
-     * @return la reparación encontrada o null si no existe.
+     * @param userId el ID del usuario actual para verificar la propiedad.
+     * @return la reparación encontrada o null si no existe o no pertenece al usuario.
      */
-    @Query("SELECT * FROM reparaciones WHERE id = :id")
-    Reparacion getById(int id);
+    @Query("SELECT * FROM reparaciones WHERE id = :id AND user_id = :userId")
+    Reparacion getReparacionById(int id, int userId); // <-- MÉTODO MODIFICADO Y CORREGIDO
 }
-

@@ -42,6 +42,15 @@ public class Reparacion {
 
     private double total; // Coste total (productos + servicio)
 
+    // --- ¡NUEVO CONSTRUCTOR VACÍO AÑADIDO! ---
+    /**
+     * Constructor vacío requerido para crear objetos temporales, como en el ViewModel
+     * para la operación de borrado. Room puede usar el otro constructor.
+     */
+    public Reparacion() {
+        // El cuerpo puede estar vacío.
+    }
+
     // Room usará este constructor. No es necesario tener otros constructores con @Ignore.
     public Reparacion(int userId, int clienteId, String fecha, String descripcion, String estado, String productosJson, double subtotal, double costeServicio, double total) {
         this.userId = userId;
@@ -55,7 +64,7 @@ public class Reparacion {
         this.total = total;
     }
 
-    // --- Getters y Setters ---
+    // --- Getters y Setters (Sin cambios) ---
 
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }

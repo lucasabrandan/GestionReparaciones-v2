@@ -14,11 +14,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="DNI (único)">
+            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDniDialog"
+                android:id="@+id/etDniClienteDialog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="number" />
+                android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Nombre -->
@@ -27,6 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/nombre_cliente">
+            <!-- Este ID ya era correcto -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNombreClienteDialog"
                 android:layout_width="match_parent"
@@ -40,8 +42,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/direccion">
+            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDireccionDialog"
+                android:id="@+id/etDireccionClienteDialog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapWords" />
@@ -53,8 +56,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/localidad">
+            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etLocalidadDialog"
+                android:id="@+id/etLocalidadClienteDialog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:inputType="textCapWords" />
@@ -66,16 +70,15 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/codigo_postal">
+            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCodigoPostalDialog"
+                android:id="@+id/etCpClienteDialog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="textCapWords|number" />
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- ELIMINADOS: Campos de Latitud y Longitud -->
-
-        <!-- Botones -->
+        <!-- Botones (sin cambios de ID) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

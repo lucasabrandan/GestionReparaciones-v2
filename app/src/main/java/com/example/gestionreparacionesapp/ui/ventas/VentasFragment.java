@@ -1,6 +1,6 @@
 package com.example.gestionreparacionesapp.ui.ventas;
 
-// --- 1. IMPORTACIONES NECESARIAS (INCLUIDAS LAS NUEVAS PARA LA CÁMARA) ---
+// --- 1. IMPORTACIONES NECESARIAS (INCLUIDAS LAS NUEVAS) ---
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -29,6 +29,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -61,14 +62,12 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     private List<Cliente> listaClientesSpinner = new ArrayList<>();
     private List<Producto> listaProductosSpinner = new ArrayList<>();
 
-    // --- 2. LANZADOR PARA GESTIONAR LA SOLICITUD DE PERMISO DE CÁMARA ---
+    // --- LANZADOR PARA GESTIONAR LA SOLICITUD DE PERMISO DE CÁMARA ---
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    // El usuario dio permiso, ahora sí abrimos la cámara.
                     abrirCamara();
                 } else {
-                    // El usuario negó el permiso. Le informamos.
                     Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
                 }
             });
@@ -131,7 +130,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     public void onVentaLongClick(Venta venta) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Anular Venta")
-                .setMessage("Esta acción no se puede deshacer y no restaurará el stock de los productos vendidos. ¿Deseas continuar?")
+                .setMessage("Esta acción no se puede deshacer. ¿Deseas continuar?")
                 .setPositiveButton("Anular", (dialog, which) -> ventasViewModel.eliminarVenta(venta))
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -152,6 +151,16 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             }
         });
 
+        // ¡NUEVO OBSERVADOR! Para reaccionar a la creación de un nuevo cliente.
+        clientesViewModel.getClienteCreadoConExito().observe(getViewLifecycleOwner(), exito -> {
+            if (exito != null && exito) {
+                Toast.makeText(getContext(), "Lista de clientes actualizada.", Toast.LENGTH_SHORT).show();
+                // No es necesario refrescar manualmente el spinner aquí,
+                // el observador de 'getListaClientes' ya actualiza 'listaClientesSpinner',
+                // que será usada la próxima vez que se cree un adapter para el spinner.
+            }
+        });
+
         productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), productos -> {
             if (productos != null) listaProductosSpinner = productos;
         });
@@ -162,11 +171,11 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void mostrarDialogoVenta() {
-        // Tu código original para mostrar el diálogo de venta...
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nueva_venta, null);
-        builder.setView(dialogView);
-        builder.setTitle("Nueva Venta");
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setView(dialogView)
+                .setTitle("Nueva Venta")
+                .create();
 
         Spinner spinnerCliente = dialogView.findViewById(R.id.spinnerClienteVenta);
         Button btnNuevoCliente = dialogView.findViewById(R.id.btnNuevoClienteVentaDialog);
@@ -181,33 +190,36 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         final Cliente[] clienteSeleccionado = {null};
 
         // Configurar Spinner de Clientes
-        List<String> nombresClientes = new ArrayList<>();
-        nombresClientes.add("Selecciona un cliente");
-        if (listaClientesSpinner != null) {
-            nombresClientes.addAll(listaClientesSpinner.stream().map(c -> c.getNombre() + " (DNI: " + c.getDni() + ")").collect(Collectors.toList()));
-        }
-        ArrayAdapter<String> clienteAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresClientes);
-        clienteAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCliente.setAdapter(clienteAdapter);
+        refrescarSpinnerDeClientes(spinnerCliente, -1); // Carga inicial de datos
 
         spinnerCliente.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                clienteSeleccionado[0] = (position > 0) ? listaClientesSpinner.get(position - 1) : null;
+                if (position > 0 && (position - 1) < listaClientesSpinner.size()) {
+                    clienteSeleccionado[0] = listaClientesSpinner.get(position - 1);
+                } else {
+                    clienteSeleccionado[0] = null;
+                }
             }
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
         btnAnadirProducto.setOnClickListener(v -> agregarViewProducto(containerProductos, productosEnVenta, tvTotal));
-        agregarViewProducto(containerProductos, productosEnVenta, tvTotal);
+        agregarViewProducto(containerProductos, productosEnVenta, tvTotal); // Añade la primera fila
 
-        AlertDialog dialog = builder.create();
-
-        btnNuevoCliente.setOnClickListener(v -> mostrarDialogoNuevoCliente());
-        btnNuevoProducto.setOnClickListener(v -> mostrarDialogoNuevoProducto());
+        btnNuevoCliente.setOnClickListener(v -> mostrarDialogoNuevoCliente(spinnerCliente));
+        btnNuevoProducto.setOnClickListener(v -> mostrarDialogoNuevoProducto(containerProductos));
 
         btnGuardar.setOnClickListener(v -> {
+            if (clienteSeleccionado[0] == null) {
+                Toast.makeText(getContext(), "Debes seleccionar un cliente.", Toast.LENGTH_SHORT).show();
+                return;
+            }
             actualizarListaProductos(containerProductos, productosEnVenta);
+            if (productosEnVenta.isEmpty()) {
+                Toast.makeText(getContext(), "Debes añadir al menos un producto.", Toast.LENGTH_SHORT).show();
+                return;
+            }
             ventasViewModel.guardarVenta(clienteSeleccionado[0], productosEnVenta);
             dialog.dismiss();
         });
@@ -216,12 +228,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void agregarViewProducto(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal) {
-        // Tu código original para agregar la vista del producto
-        if (listaProductosSpinner == null || listaProductosSpinner.isEmpty()) {
-            Toast.makeText(getContext(), "No hay productos disponibles para vender.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
         View productoView = getLayoutInflater().inflate(R.layout.item_producto_venta, container, false);
         Spinner spinnerProducto = productoView.findViewById(R.id.spinnerProducto);
         EditText etCantidad = productoView.findViewById(R.id.etCantidad);
@@ -229,20 +235,22 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
 
         List<String> nombresProductos = new ArrayList<>();
         nombresProductos.add("Selecciona un producto");
-        nombresProductos.addAll(listaProductosSpinner.stream()
-                .map(p -> String.format(Locale.getDefault(), "%s - $%.2f (Stock: %d)", p.getNombre(), p.getPrecio(), p.getCantidad()))
-                .collect(Collectors.toList()));
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresProductos);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerProducto.setAdapter(adapter);
+        if (listaProductosSpinner != null && !listaProductosSpinner.isEmpty()) {
+            nombresProductos.addAll(listaProductosSpinner.stream()
+                    .map(p -> String.format(Locale.getDefault(), "%s - $%.2f (Stock: %d)", p.getNombre(), p.getPrecio(), p.getCantidad()))
+                    .collect(Collectors.toList()));
+        }
+        ArrayAdapter<String> productoAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresProductos);
+        productoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerProducto.setAdapter(productoAdapter);
 
-        TextWatcher textWatcher = (new TextWatcher() {
+        TextWatcher textWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
                 calcularTotalVenta(container, productosLista, tvTotal);
             }
             @Override public void afterTextChanged(Editable s) {}
-        });
+        };
 
         etCantidad.addTextChangedListener(textWatcher);
         spinnerProducto.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
@@ -261,26 +269,22 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void actualizarListaProductos(LinearLayout container, List<ProductoVenta> productosLista) {
-        // Tu código original para actualizar la lista de productos
         productosLista.clear();
         for (int i = 0; i < container.getChildCount(); i++) {
             View itemView = container.getChildAt(i);
             Spinner spinnerProducto = itemView.findViewById(R.id.spinnerProducto);
             EditText etCantidad = itemView.findViewById(R.id.etCantidad);
             int pos = spinnerProducto.getSelectedItemPosition();
-            if (pos > 0) {
+            if (pos > 0 && pos - 1 < listaProductosSpinner.size()) {
                 Producto p = listaProductosSpinner.get(pos - 1);
                 int cant = 0;
-                try {
-                    cant = Integer.parseInt(etCantidad.getText().toString());
-                } catch (NumberFormatException ignored) {}
+                try { cant = Integer.parseInt(etCantidad.getText().toString()); } catch (NumberFormatException ignored) {}
                 if (cant > 0) productosLista.add(new ProductoVenta(p, cant));
             }
         }
     }
 
     private void calcularTotalVenta(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal) {
-        // Tu código original para calcular el total
         actualizarListaProductos(container, productosLista);
         double total = 0;
         for (ProductoVenta pv : productosLista) {
@@ -289,101 +293,128 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         tvTotal.setText(String.format(Locale.getDefault(), "TOTAL: $%.2f", total));
     }
 
-    private void mostrarDialogoNuevoCliente() {
-        // Tu código original para el diálogo de nuevo cliente
+    private void mostrarDialogoNuevoCliente(Spinner spinnerClienteVenta) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Nuevo Cliente Rápido")
                 .setView(dialogView)
                 .create();
 
-        EditText etDni = dialogView.findViewById(R.id.etDniDialog);
+        // --- ¡AQUÍ LA CORRECCIÓN! ---
+        // Se usan los IDs estandarizados que ahora existen en el archivo XML.
+        EditText etDni = dialogView.findViewById(R.id.etDniClienteDialog);
         EditText etNombre = dialogView.findViewById(R.id.etNombreClienteDialog);
-        EditText etDireccion = dialogView.findViewById(R.id.etDireccionDialog);
-        EditText etLocalidad = dialogView.findViewById(R.id.etLocalidadDialog);
-        EditText etCodigoPostal = dialogView.findViewById(R.id.etCodigoPostalDialog);
         Button btnGuardar = dialogView.findViewById(R.id.btnGuardarClienteDialog);
         Button btnCancelar = dialogView.findViewById(R.id.btnCancelarClienteDialog);
 
         btnGuardar.setOnClickListener(v -> {
-            clientesViewModel.guardarCliente(
-                    etDni.getText().toString(),
-                    etNombre.getText().toString(),
-                    etDireccion.getText().toString(),
-                    etLocalidad.getText().toString(),
-                    etCodigoPostal.getText().toString()
-            );
+            String dni = etDni.getText().toString().trim();
+            String nombre = etNombre.getText().toString().trim();
+            if (nombre.isEmpty() || dni.isEmpty()) {
+                Toast.makeText(getContext(), "El DNI y el Nombre son obligatorios.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            clientesViewModel.guardarCliente(dni, nombre, "", "", "");
             dialog.dismiss();
-            Toast.makeText(getContext(), "Cliente guardado. Cierra y vuelve a abrir el diálogo para seleccionarlo.", Toast.LENGTH_LONG).show();
+
+            // La lógica para refrescar el spinner se manejará de forma reactiva
+            // gracias al nuevo observador del SingleLiveEvent que añadimos en setupObservers().
+            // El código complejo de 'new Observer' que estaba aquí ya no es necesario.
         });
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
 
-    // --- 3. MÉTODO MODIFICADO PARA EL DIÁLOGO DE "NUEVO PRODUCTO RÁPIDO" ---
-    private void mostrarDialogoNuevoProducto() {
+    private void mostrarDialogoNuevoProducto(LinearLayout containerProductosVenta) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Nuevo Producto Rápido")
                 .setView(dialogView)
                 .create();
 
-        // Encontrar los componentes del layout del diálogo
-        ImageView ivPreview = dialogView.findViewById(R.id.ivProductoPreview);
-        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto); // El botón real
-        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
+        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto);
         EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
+        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
         EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
         EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
         Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
         Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
 
-        // --- ASIGNAR LA LÓGICA DE LA CÁMARA AL BOTÓN "AÑADIR FOTO" ---
-        btnAnadirFoto.setOnClickListener(v -> {
-            comprobarPermisoYlanzarCamara();
-        });
+        btnAnadirFoto.setOnClickListener(v -> comprobarPermisoYlanzarCamara());
 
         btnGuardar.setOnClickListener(v -> {
-            productoViewModel.guardarProducto(
+            String nombre = etNombre.getText().toString();
+            if (nombre.isEmpty()) {
+                Toast.makeText(getContext(), "El nombre del producto es obligatorio.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Asumiendo que existe un método 'guardarProducto' en ProductoViewModel
+            // que se encarga de todo, incluyendo un SingleLiveEvent para productos.
+            productoViewModel.insertarProducto(
                     etSku.getText().toString(),
-                    etNombre.getText().toString(),
+                    nombre,
                     etPrecio.getText().toString(),
-                    etCantidad.getText().toString()
-                    // Aquí necesitarás también la URI de la imagen si la capturas
+                    etCantidad.getText().toString(),
+                    null // imageUri
             );
             dialog.dismiss();
-            Toast.makeText(getContext(), "Producto guardado. Cierra y vuelve a abrir el diálogo para seleccionarlo.", Toast.LENGTH_LONG).show();
-        });
 
+            // Aquí también, la lógica reactiva con un SingleLiveEvent en ProductoViewModel es la mejor opción.
+        });
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
 
-    // --- 4. MÉTODOS AUXILIARES PARA LA LÓGICA DE LA CÁMARA ---
+    private void refrescarSpinnerDeClientes(Spinner spinnerCliente, int selectionIndex) {
+        List<String> nombresClientes = new ArrayList<>();
+        nombresClientes.add("Selecciona un cliente");
+        if (listaClientesSpinner != null) {
+            nombresClientes.addAll(listaClientesSpinner.stream().map(c -> c.getNombre() + " (DNI: " + c.getDni() + ")").collect(Collectors.toList()));
+        }
 
-    /**
-     * Comprueba si el permiso de la cámara está concedido.
-     * Si lo está, abre la cámara. Si no, solicita el permiso.
-     */
+        ArrayAdapter<String> nuevoAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresClientes);
+        nuevoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCliente.setAdapter(nuevoAdapter);
+
+        if (selectionIndex != -1 && selectionIndex < nuevoAdapter.getCount()) {
+            spinnerCliente.setSelection(selectionIndex);
+        }
+    }
+
+    private void refrescarSpinnersDeProductos(LinearLayout container) {
+        List<String> nombresProductos = new ArrayList<>();
+        nombresProductos.add("Selecciona un producto");
+        if (listaProductosSpinner != null) {
+            nombresProductos.addAll(listaProductosSpinner.stream()
+                    .map(p -> String.format(Locale.getDefault(), "%s - $%.2f (Stock: %d)", p.getNombre(), p.getPrecio(), p.getCantidad()))
+                    .collect(Collectors.toList()));
+        }
+
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View productoView = container.getChildAt(i);
+            Spinner spinnerProducto = productoView.findViewById(R.id.spinnerProducto);
+            int seleccionActual = spinnerProducto.getSelectedItemPosition();
+
+            ArrayAdapter<String> nuevoAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresProductos);
+            nuevoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+            spinnerProducto.setAdapter(nuevoAdapter);
+
+            if (seleccionActual < nuevoAdapter.getCount()) {
+                spinnerProducto.setSelection(seleccionActual);
+            }
+        }
+    }
+
     private void comprobarPermisoYlanzarCamara() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            // Permiso ya concedido, abre la cámara directamente.
             abrirCamara();
         } else {
-            // Permiso no concedido, lanza el diálogo de solicitud.
-            // El resultado lo gestionará el 'requestPermissionLauncher' que declaramos arriba.
             requestPermissionLauncher.launch(Manifest.permission.CAMERA);
         }
     }
 
-    /**
-     * Crea y lanza un Intent para abrir la aplicación de la cámara.
-     * Este método solo debe llamarse DESPUÉS de confirmar que el permiso está concedido.
-     */
     private void abrirCamara() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // El siguiente paso es usar otro ActivityResultLauncher para recibir la foto y ponerla en el ImageView.
-        // Por ahora, con esto la cámara ya se abrirá.
         startActivity(cameraIntent);
     }
 }

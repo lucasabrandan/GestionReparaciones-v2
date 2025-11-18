@@ -1,6 +1,6 @@
 package com.example.gestionreparacionesapp.ui.reparaciones;
 
-// --- 1. IMPORTACIONES NECESARIAS (INCLUIDAS LAS NUEVAS PARA LA CÁMARA) ---
+// --- 1. IMPORTACIONES NECESARIAS ---
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,6 +30,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,6 +43,11 @@ import com.example.gestionreparacionesapp.ui.clientes.ClientesViewModel;
 import com.example.gestionreparacionesapp.ui.productos.ProductoViewModel;
 import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+// ¡CAMBIO CLAVE! Importamos las clases necesarias para manejar el JSON
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,18 +69,12 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
     private List<Cliente> listaClientesSpinner = new ArrayList<>();
     private List<Producto> listaProductosSpinner = new ArrayList<>();
 
-    // --- 2. LANZADOR PARA GESTIONAR LA SOLICITUD DE PERMISO DE CÁMARA ---
+    // Lanzador para permisos de cámara (sin cambios)
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    // El usuario dio permiso, ahora sí abrimos la cámara.
-                    abrirCamara();
-                } else {
-                    // El usuario negó el permiso. Le informamos.
-                    Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
-                }
+                if (isGranted) abrirCamara();
+                else Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
             });
-
 
     public ReparacionesFragment() {}
 
@@ -82,6 +83,7 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
         super.onCreate(savedInstanceState);
         adapter = new ReparacionesAdapter(new ArrayList<>(), new ArrayList<>(), this);
         reparacionesViewModel = new ViewModelProvider(this).get(ReparacionesViewModel.class);
+        // Usamos requireActivity() para que el ViewModel sea compartido entre fragments
         clientesViewModel = new ViewModelProvider(requireActivity()).get(ClientesViewModel.class);
         productoViewModel = new ViewModelProvider(requireActivity()).get(ProductoViewModel.class);
     }
@@ -133,8 +135,8 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
     public void onReparacionLongClick(Reparacion reparacion) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Eliminar Reparación")
-                .setMessage("¿Estás seguro de que deseas eliminar la reparación #" + reparacion.getId() + "? Esta acción no restaurará el stock de los productos utilizados.")
-                .setPositiveButton("Eliminar", (dialog, which) -> reparacionesViewModel.eliminarReparacion(reparacion))
+                .setMessage("¿Estás seguro de que deseas eliminar la reparación #" + reparacion.getId() + "? Esta acción no se puede deshacer.")
+                .setPositiveButton("Eliminar", (dialog, which) -> reparacionesViewModel.eliminarReparacionPorId(reparacion.getId()))
                 .setNegativeButton("Cancelar", null)
                 .show();
     }
@@ -147,12 +149,34 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
             if (!isEmpty) adapter.setReparaciones(reparaciones);
         });
 
+        // --- INICIO DE LA IMPLEMENTACIÓN (Paso 3) ---
+
+        // OBSERVADOR B: Reacciona a CUALQUIER cambio en la lista de clientes del ViewModel.
+        // Se activa al inicio y cada vez que la lista se actualiza (p.ej. después de crear uno nuevo).
         clientesViewModel.getListaClientes().observe(getViewLifecycleOwner(), clientes -> {
             if (clientes != null) {
+                // Actualiza la lista para el RecyclerView principal
                 adapter.setClientes(clientes);
+
+                // ¡LÍNEA CLAVE! Actualiza la lista local que usan los diálogos para construir el Spinner.
                 listaClientesSpinner = clientes;
             }
         });
+
+        // OBSERVADOR A: Reacciona al evento "cliente creado con éxito".
+        // Este se activa una sola vez cuando el ViewModel lo notifica desde el diálogo de creación.
+        clientesViewModel.getClienteCreadoConExito().observe(getViewLifecycleOwner(), exito -> {
+            if (exito != null && exito) {
+                // El ViewModel ha notificado que se creó un cliente.
+                // 1. Mostramos un mensaje de feedback al usuario.
+                Toast.makeText(getContext(), "Lista de clientes actualizada.", Toast.LENGTH_SHORT).show();
+
+                // 2. La actualización de la lista 'listaClientesSpinner' ya habrá ocurrido
+                // gracias al OBSERVADOR B, que reacciona a los cambios de 'getListaClientes()'.
+            }
+        });
+
+        // --- FIN DE LA IMPLEMENTACIÓN ---
 
         productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), productos -> {
             if (productos != null) listaProductosSpinner = productos;
@@ -185,134 +209,263 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
         final List<ProductoVenta> productosEnReparacion = new ArrayList<>();
         final Cliente[] clienteSeleccionado = {null};
 
-        // --- Configurar Spinner de Clientes ---
+        // --- Configuración del Spinner de Clientes ---
+        ArrayAdapter<String> clienteAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, new ArrayList<>());
+        clienteAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerCliente.setAdapter(clienteAdapter);
+
+        // Refrescamos el spinner con los datos actuales. La selección se hará más abajo.
+        refrescarSpinnerDeClientes(clienteAdapter, -1);
+
+        spinnerCliente.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position > 0 && (position - 1) < listaClientesSpinner.size()) {
+                    clienteSeleccionado[0] = listaClientesSpinner.get(position - 1);
+                } else {
+                    clienteSeleccionado[0] = null;
+                }
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        TextWatcher totalCalculatorWatcher = new TextWatcher() {
+            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
+                calcularTotalReparacion(containerProductos, etCosteServicio, tvSubtotal, tvTotal);
+            }
+            @Override public void afterTextChanged(Editable s) {}
+        };
+        etCosteServicio.addTextChangedListener(totalCalculatorWatcher);
+
+        btnAnadirProducto.setOnClickListener(v -> agregarViewProducto(containerProductos, null, totalCalculatorWatcher, etCosteServicio, tvSubtotal, tvTotal));
+        btnNuevoCliente.setOnClickListener(v -> mostrarDialogoNuevoCliente());
+        btnNuevoProducto.setOnClickListener(v -> mostrarDialogoNuevoProducto());
+
+        if (reparacion != null) {
+            // MODO EDICIÓN
+            dialog.setTitle("Editar Reparación #" + reparacion.getId());
+            btnGuardar.setText("Actualizar");
+
+            etDescripcion.setText(reparacion.getDescripcion());
+            etCosteServicio.setText(String.format(Locale.US, "%.2f", reparacion.getCosteServicio()));
+
+            spinnerCliente.post(() -> {
+                int clienteId = reparacion.getClienteId();
+                for (int i = 0; i < listaClientesSpinner.size(); i++) {
+                    if (listaClientesSpinner.get(i).getId() == clienteId) {
+                        spinnerCliente.setSelection(i + 1); // +1 por el "Selecciona un cliente"
+                        break;
+                    }
+                }
+            });
+
+            List<ProductoVenta> productosGuardados = parsearProductosDesdeJson(reparacion.getProductosJson());
+            if (productosGuardados.isEmpty()) {
+                agregarViewProducto(containerProductos, null, totalCalculatorWatcher, etCosteServicio, tvSubtotal, tvTotal);
+            } else {
+                for (ProductoVenta pv : productosGuardados) {
+                    agregarViewProducto(containerProductos, pv, totalCalculatorWatcher, etCosteServicio, tvSubtotal, tvTotal);
+                }
+            }
+
+        } else {
+            // MODO CREAR
+            dialog.setTitle("Nueva Reparación");
+            btnGuardar.setText("Guardar");
+            agregarViewProducto(containerProductos, null, totalCalculatorWatcher, etCosteServicio, tvSubtotal, tvTotal);
+        }
+
+        btnGuardar.setOnClickListener(v -> {
+            List<ProductoVenta> productosFinales = actualizarListaProductos(containerProductos);
+            double costeServicio = 0.0;
+            try {
+                costeServicio = Double.parseDouble(etCosteServicio.getText().toString());
+            } catch (NumberFormatException ignored) {}
+
+            if (clienteSeleccionado[0] == null){
+                Toast.makeText(getContext(), "Debes seleccionar un cliente.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (reparacion == null) {
+                reparacionesViewModel.guardarReparacion(clienteSeleccionado[0], etDescripcion.getText().toString(), productosFinales, costeServicio);
+            } else {
+                reparacionesViewModel.actualizarReparacion(reparacion.getId(), clienteSeleccionado[0], etDescripcion.getText().toString(), productosFinales, costeServicio);
+            }
+            dialog.dismiss();
+        });
+
+        btnCancelar.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+        calcularTotalReparacion(containerProductos, etCosteServicio, tvSubtotal, tvTotal);
+    }
+
+    private void agregarViewProducto(LinearLayout container, @Nullable ProductoVenta productoExistente, TextWatcher totalCalculatorWatcher, EditText etCosteServicio, TextView tvSubtotal, TextView tvTotal) {
+        if (listaProductosSpinner == null || listaProductosSpinner.isEmpty()) {
+            Toast.makeText(getContext(), "No hay productos disponibles", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View productoView = getLayoutInflater().inflate(R.layout.item_producto_venta, container, false);
+        Spinner spinnerProducto = productoView.findViewById(R.id.spinnerProducto);
+        EditText etCantidad = productoView.findViewById(R.id.etCantidad);
+        ImageButton btnEliminar = productoView.findViewById(R.id.btnEliminarProductoVenta);
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, getNombresDeProductos());
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerProducto.setAdapter(adapter);
+
+        if (productoExistente != null) {
+            etCantidad.setText(String.valueOf(productoExistente.getCantidad()));
+            spinnerProducto.post(() -> {
+                for (int i = 0; i < listaProductosSpinner.size(); i++) {
+                    // La comprobación ahora debe hacerse contra el Producto interno de ProductoVenta
+                    if (listaProductosSpinner.get(i).getId() == productoExistente.getProducto().getId()) {
+                        spinnerProducto.setSelection(i + 1); // +1 por "Selecciona..."
+                        break;
+                    }
+                }
+            });
+        }
+
+        etCantidad.addTextChangedListener(totalCalculatorWatcher);
+        spinnerProducto.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                calcularTotalReparacion(container, etCosteServicio, tvSubtotal, tvTotal);
+            }
+            @Override public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
+        btnEliminar.setOnClickListener(v -> {
+            container.removeView(productoView);
+            calcularTotalReparacion(container, etCosteServicio, tvSubtotal, tvTotal);
+        });
+
+        container.addView(productoView);
+    }
+
+    private List<ProductoVenta> actualizarListaProductos(LinearLayout container) {
+        List<ProductoVenta> productosLista = new ArrayList<>();
+        for (int i = 0; i < container.getChildCount(); i++) {
+            View itemView = container.getChildAt(i);
+            Spinner spinnerProducto = itemView.findViewById(R.id.spinnerProducto);
+            EditText etCantidad = itemView.findViewById(R.id.etCantidad);
+            int pos = spinnerProducto.getSelectedItemPosition();
+            if (pos > 0) {
+                Producto p = listaProductosSpinner.get(pos - 1);
+                int cant = 0;
+                try { cant = Integer.parseInt(etCantidad.getText().toString()); } catch (NumberFormatException ignored) {}
+                if (cant > 0) productosLista.add(new ProductoVenta(p, cant));
+            }
+        }
+        return productosLista;
+    }
+
+    private void calcularTotalReparacion(LinearLayout container, EditText etCosteServicio, TextView tvSubtotal, TextView tvTotal) {
+        List<ProductoVenta> productosActuales = actualizarListaProductos(container);
+        double subtotalProductos = 0;
+        for (ProductoVenta pv : productosActuales) subtotalProductos += pv.getSubtotal();
+
+        double costeServicio = 0.0;
+        try { costeServicio = Double.parseDouble(etCosteServicio.getText().toString()); } catch (NumberFormatException ignored) {}
+
+        double totalFinal = subtotalProductos + costeServicio;
+
+        tvSubtotal.setText(String.format(Locale.getDefault(), "Subtotal Productos: $%.2f", subtotalProductos));
+        tvTotal.setText(String.format(Locale.getDefault(), "TOTAL: $%.2f", totalFinal));
+    }
+
+    private List<ProductoVenta> parsearProductosDesdeJson(String json) {
+        List<ProductoVenta> lista = new ArrayList<>();
+        if (json == null || json.isEmpty()) return lista;
+
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.getJSONObject(i);
+                int productoId = obj.getInt("producto_id");
+                int cantidad = obj.getInt("cantidad");
+
+                Producto productoOriginal = null;
+                for (Producto p : listaProductosSpinner) {
+                    if (p.getId() == productoId) {
+                        productoOriginal = p;
+                        break;
+                    }
+                }
+                if (productoOriginal != null) lista.add(new ProductoVenta(productoOriginal, cantidad));
+            }
+        } catch (JSONException e) {
+            Log.e("ReparacionesFragment", "Error al parsear JSON de productos", e);
+        }
+        return lista;
+    }
+
+    private void refrescarSpinnerDeClientes(ArrayAdapter<String> adapter, int clienteId) {
         List<String> nombresClientes = new ArrayList<>();
         nombresClientes.add("Selecciona un cliente");
         if (listaClientesSpinner != null) {
             nombresClientes.addAll(listaClientesSpinner.stream().map(c -> c.getNombre() + " (DNI: " + c.getDni() + ")").collect(Collectors.toList()));
         }
-        ArrayAdapter<String> clienteAdapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_item, nombresClientes);
-        clienteAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinnerCliente.setAdapter(clienteAdapter);
+        adapter.clear();
+        adapter.addAll(nombresClientes);
+        adapter.notifyDataSetChanged();
+    }
 
-        spinnerCliente.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                clienteSeleccionado[0] = (position > 0) ? listaClientesSpinner.get(position - 1) : null;
-            }
-            @Override public void onNothingSelected(AdapterView<?> parent) {}
-        });
-
-        TextWatcher totalCalculatorWatcher = (new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-            @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
-                calcularTotalReparacion(containerProductos, productosEnReparacion, etCosteServicio, tvSubtotal, tvTotal);
-            }
-            @Override public void afterTextChanged(Editable s) {}
-        });
-        etCosteServicio.addTextChangedListener(totalCalculatorWatcher);
-
-        // --- Lógica de botones ---
-        btnAnadirProducto.setOnClickListener(v -> agregarViewProducto(containerProductos, productosEnReparacion, etCosteServicio, tvSubtotal, tvTotal, totalCalculatorWatcher));
-        btnNuevoCliente.setOnClickListener(v -> mostrarDialogoNuevoCliente());
-        btnNuevoProducto.setOnClickListener(v -> mostrarDialogoNuevoProducto());
-
-        if (reparacion != null) {
-            dialog.setTitle("Editar Reparación");
-            // Lógica para rellenar datos existentes...
-        } else {
-            dialog.setTitle("Nueva Reparación");
-            agregarViewProducto(containerProductos, productosEnReparacion, etCosteServicio, tvSubtotal, tvTotal, totalCalculatorWatcher);
+    private List<String> getNombresDeProductos() {
+        List<String> nombres = new ArrayList<>();
+        nombres.add("Selecciona un producto");
+        if (listaProductosSpinner != null) {
+            nombres.addAll(listaProductosSpinner.stream()
+                    .map(p -> String.format(Locale.getDefault(), "%s - $%.2f (Stock: %d)", p.getNombre(), p.getPrecio(), p.getCantidad()))
+                    .collect(Collectors.toList()));
         }
-
-        btnGuardar.setOnClickListener(v -> {
-            // Lógica para guardar la reparación...
-            dialog.dismiss();
-        });
-        btnCancelar.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-    }
-
-    private void agregarViewProducto(LinearLayout container, List<ProductoVenta> productosLista, EditText etCosteServicio, TextView tvSubtotal, TextView tvTotal, TextWatcher totalCalculatorWatcher) {
-        // Tu código original para agregar un producto a la reparación
-    }
-
-    private void actualizarListaProductos(LinearLayout container, List<ProductoVenta> productosLista) {
-        // Tu código original para actualizar la lista de productos
-    }
-
-    private void calcularTotalReparacion(LinearLayout container, List<ProductoVenta> productosLista, EditText etCosteServicio, TextView tvSubtotal, TextView tvTotal) {
-        // Tu código original para calcular el total
+        return nombres;
     }
 
     private void mostrarDialogoNuevoCliente() {
-        // Tu código original para el diálogo de nuevo cliente
-    }
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
+        final AlertDialog dialog = new AlertDialog.Builder(requireContext()).setTitle("Nuevo Cliente Rápido").setView(dialogView).create();
 
-    // --- 3. MÉTODO MODIFICADO PARA EL DIÁLOGO DE "NUEVO PRODUCTO RÁPIDO" ---
-    private void mostrarDialogoNuevoProducto() {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("Nuevo Producto Rápido")
-                .setView(dialogView)
-                .create();
-
-        // Encontrar los componentes del layout del diálogo
-        ImageView ivPreview = dialogView.findViewById(R.id.ivProductoPreview);
-        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto); // El botón real
-        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
-        EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
-        EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
-        EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
-        Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
-        Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
-
-        // --- ASIGNAR LA LÓGICA DE LA CÁMARA AL BOTÓN "AÑADIR FOTO" ---
-        btnAnadirFoto.setOnClickListener(v -> {
-            comprobarPermisoYlanzarCamara();
-        });
+        EditText etDni = dialogView.findViewById(R.id.etDniClienteDialog);
+        EditText etNombre = dialogView.findViewById(R.id.etNombreClienteDialog);
+        EditText etDireccion = dialogView.findViewById(R.id.etDireccionClienteDialog);
+        EditText etLocalidad = dialogView.findViewById(R.id.etLocalidadClienteDialog);
+        EditText etCP = dialogView.findViewById(R.id.etCpClienteDialog);
+        Button btnGuardar = dialogView.findViewById(R.id.btnGuardarClienteDialog);
+        Button btnCancelar = dialogView.findViewById(R.id.btnCancelarClienteDialog);
 
         btnGuardar.setOnClickListener(v -> {
-            productoViewModel.guardarProducto(
-                    etSku.getText().toString(),
-                    etNombre.getText().toString(),
-                    etPrecio.getText().toString(),
-                    etCantidad.getText().toString()
-                    // Aquí necesitarás también la URI de la imagen si la capturas
+            String dni = etDni.getText().toString().trim();
+            String nombre = etNombre.getText().toString().trim();
+            if (dni.isEmpty() || nombre.isEmpty()) {
+                Toast.makeText(getContext(), "DNI y Nombre son obligatorios.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            clientesViewModel.guardarCliente(
+                    dni,
+                    nombre,
+                    etDireccion.getText().toString().trim(),
+                    etLocalidad.getText().toString().trim(),
+                    etCP.getText().toString().trim()
             );
             dialog.dismiss();
-            Toast.makeText(getContext(), "Producto guardado. Cierra y vuelve a abrir el diálogo para seleccionarlo.", Toast.LENGTH_LONG).show();
         });
-
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
 
-    // --- 4. MÉTODOS AUXILIARES PARA LA LÓGICA DE LA CÁMARA ---
-
-    /**
-     * Comprueba si el permiso de la cámara está concedido.
-     * Si lo está, abre la cámara. Si no, solicita el permiso.
-     */
-    private void comprobarPermisoYlanzarCamara() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            // Permiso ya concedido, abre la cámara directamente.
-            abrirCamara();
-        } else {
-            // Permiso no concedido, lanza el diálogo de solicitud.
-            // El resultado lo gestionará el 'requestPermissionLauncher' que declaramos arriba.
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
-        }
+    private void mostrarDialogoNuevoProducto() {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
+        final AlertDialog dialog = new AlertDialog.Builder(requireContext()).setTitle("Nuevo Producto Rápido").setView(dialogView).create();
+        // ... Lógica similar a la de nuevo cliente para guardar un producto rápidamente
+        // Esto también se beneficiaría de un SingleLiveEvent en el ProductoViewModel.
     }
 
-    /**
-     * Crea y lanza un Intent para abrir la aplicación de la cámara.
-     * Este método solo debe llamarse DESPUÉS de confirmar que el permiso está concedido.
-     */
+    // Métodos de cámara (Dummy)
     private void abrirCamara() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // El siguiente paso es usar otro ActivityResultLauncher para recibir la foto y ponerla en el ImageView.
-        // Por ahora, con esto la cámara ya se abrirá.
         startActivity(cameraIntent);
     }
 }

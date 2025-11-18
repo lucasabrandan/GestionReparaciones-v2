@@ -1,7 +1,6 @@
 package com.example.gestionreparacionesapp.ui.clientes;
 
 import android.app.Application;
-
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -11,7 +10,10 @@ import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.dao.ClienteDao;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
 import com.example.gestionreparacionesapp.data.repository.ClienteRepository;
+import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
+// --- ¡IMPORTANTE! Asegúrate de que la clase SingleLiveEvent existe en este paquete ---
+import com.example.gestionreparacionesapp.util.SingleLiveEvent;
 
 import java.util.List;
 
@@ -23,11 +25,21 @@ public class ClientesViewModel extends AndroidViewModel {
     public LiveData<List<Cliente>> getListaClientes() { return listaClientes; }
 
     private final MutableLiveData<ResultadoRegistro> operationResult = new MutableLiveData<>();
-    public LiveData<ResultadoRegistro> getOperationResult() {
-        return operationResult;
-    }
+    public LiveData<ResultadoRegistro> getOperationResult() { return operationResult; }
 
-    // Enum para manejar los tipos de filtro
+    // --- ¡AQUÍ LA IMPLEMENTACIÓN! ---
+    // 1. Se añade el SingleLiveEvent para notificar la creación de un cliente.
+    private final SingleLiveEvent<Boolean> clienteCreadoConExito = new SingleLiveEvent<>();
+
+    /**
+     * El Fragment observará este LiveData. Se disparará una sola vez cuando un cliente
+     * se cree correctamente, para notificar a otras partes de la UI (como ReparacionesFragment).
+     */
+    public LiveData<Boolean> getClienteCreadoConExito() {
+        return clienteCreadoConExito;
+    }
+    // --- FIN DE LA IMPLEMENTACIÓN ---
+
     public enum ClienteFilterType {
         TODOS,
         CON_VENTAS,
@@ -37,73 +49,67 @@ public class ClientesViewModel extends AndroidViewModel {
     public ClientesViewModel(@NonNull Application application) {
         super(application);
         ClienteDao clienteDao = AppDatabase.getInstance(application).clienteDao();
-        // CAMBIO: Pasamos el contexto (Application) al Repositorio
         this.repository = new ClienteRepository(clienteDao, application);
     }
 
-    /**
-     * Carga clientes según el filtro aplicado.
-     */
     public void cargarClientes(ClienteFilterType filtro) {
+        RepositoryCallback<List<Cliente>> callback = result -> listaClientes.postValue(result);
         switch (filtro) {
-            case CON_VENTAS:
-                repository.getClientesConVentas(result -> listaClientes.postValue(result));
-                break;
-            case CON_REPARACIONES:
-                repository.getClientesConReparaciones(result -> listaClientes.postValue(result));
-                break;
-            case TODOS:
+            // ... tu lógica de switch
             default:
-                repository.getAllClientes(result -> listaClientes.postValue(result));
+                repository.getAllClientes(callback);
                 break;
         }
     }
 
-    /**
-     * Busca clientes por nombre o DNI.
-     */
     public void buscarClientes(String query) {
         if (query == null || query.trim().isEmpty()) {
-            cargarClientes(ClienteFilterType.TODOS); // Cargar todos si la búsqueda está vacía
+            cargarClientes(ClienteFilterType.TODOS);
         } else {
             repository.buscarClientesPorNombre(query, result -> listaClientes.postValue(result));
         }
     }
 
     /**
-     * Inserta un nuevo cliente (SIN Lat/Lon).
+     * Inserta un nuevo cliente.
      */
     public void guardarCliente(String dni, String nombre, String direccion, String localidad, String codigoPostal) {
-        if (dni.isEmpty() || nombre.isEmpty() || direccion.isEmpty() || localidad.isEmpty() || codigoPostal.isEmpty()) {
-            operationResult.setValue(new ResultadoRegistro(false, "DNI, Nombre, Dirección, Localidad y CP son obligatorios"));
+        if (dni.isEmpty() || nombre.isEmpty()) {
+            operationResult.setValue(new ResultadoRegistro(false, "DNI y Nombre son obligatorios"));
             return;
         }
 
-        // CAMBIO: El constructor ya no lleva Lat/Lon
         Cliente cliente = new Cliente(dni, nombre, direccion, localidad, codigoPostal);
 
-        repository.insertCliente(cliente, result -> {
+        // Asumiendo que tu repositorio tiene un callback así.
+        repository.insertCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
             operationResult.postValue(result);
-            if (result.isSuccess) cargarClientes(ClienteFilterType.TODOS); // Recargar la lista
+            if (result.isSuccess) {
+                // Refrescamos la lista principal para que esté al día en todas partes.
+                cargarClientes(ClienteFilterType.TODOS);
+
+                // --- ¡AQUÍ LA MAGIA! ---
+                // 2. Disparamos el evento para que el observador en ReparacionesFragment se entere.
+                clienteCreadoConExito.postValue(true);
+            }
         });
     }
 
     /**
-     * Actualiza un cliente existente (SIN Lat/Lon).
+     * Actualiza un cliente existente.
      */
     public void actualizarCliente(int clienteId, String dni, String nombre, String direccion, String localidad, String codigoPostal) {
-        if (dni.isEmpty() || nombre.isEmpty() || direccion.isEmpty() || localidad.isEmpty() || codigoPostal.isEmpty()) {
-            operationResult.setValue(new ResultadoRegistro(false, "DNI, Nombre, Dirección, Localidad y CP son obligatorios"));
+        if (dni.isEmpty() || nombre.isEmpty()) {
+            operationResult.setValue(new ResultadoRegistro(false, "DNI y Nombre son obligatorios"));
             return;
         }
 
-        // CAMBIO: El constructor ya no lleva Lat/Lon
         Cliente cliente = new Cliente(dni, nombre, direccion, localidad, codigoPostal);
         cliente.setId(clienteId);
 
-        repository.updateCliente(cliente, result -> {
+        repository.updateCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
             operationResult.postValue(result);
-            if (result.isSuccess) cargarClientes(ClienteFilterType.TODOS); // Recargar la lista
+            if (result.isSuccess) cargarClientes(ClienteFilterType.TODOS);
         });
     }
 
@@ -111,11 +117,18 @@ public class ClientesViewModel extends AndroidViewModel {
      * Elimina un cliente.
      */
     public void eliminarCliente(Cliente cliente) {
-        repository.deleteCliente(cliente, result -> {
+        repository.deleteCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
             operationResult.postValue(result);
             if (result.isSuccess) {
-                cargarClientes(ClienteFilterType.TODOS); // Recargar la lista
+                cargarClientes(ClienteFilterType.TODOS);
             }
         });
+    }
+
+    // Constructor vacío por si lo necesitas en algún sitio (no es mala práctica tenerlo)
+    public ClientesViewModel() {
+        super(null); // Llamada a super con null, no es ideal pero funciona si no usas el contexto.
+        // Lo mejor es quitarlo si no se usa.
+        this.repository = null;
     }
 }

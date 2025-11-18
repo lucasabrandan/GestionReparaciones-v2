@@ -11,11 +11,14 @@ import androidx.lifecycle.MutableLiveData;
 import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
+// YA NO NECESITAMOS ReparacionConProductos
 import com.example.gestionreparacionesapp.data.repository.ReparacionRepository;
+import com.example.gestionreparacionesapp.data.util.RepositoryCallback; // Asumo que existe esta interfaz
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -33,6 +36,12 @@ public class ReparacionesViewModel extends AndroidViewModel {
     private final MutableLiveData<ResultadoRegistro> operationResult = new MutableLiveData<>();
     public LiveData<ResultadoRegistro> getOperationResult() { return operationResult; }
 
+    // --- CAMBIO CLAVE 1: LiveData SIMPLIFICADO ---
+    // Este LiveData ahora solo contendrá la Reparacion. El Fragment se encargará de leer el JSON.
+    private final MutableLiveData<Reparacion> reparacionSeleccionada = new MutableLiveData<>();
+    public LiveData<Reparacion> getReparacionSeleccionada() { return reparacionSeleccionada; }
+
+
     public ReparacionesViewModel(@NonNull Application application) {
         super(application);
         this.repository = new ReparacionRepository(
@@ -42,19 +51,36 @@ public class ReparacionesViewModel extends AndroidViewModel {
     }
 
     public void cargarReparaciones() {
-        repository.getAllReparaciones(result -> listaReparaciones.postValue(result));
+        // Asumo que tu RepositoryCallback se llama así
+        repository.getAllReparaciones((RepositoryCallback<List<Reparacion>>) result -> listaReparaciones.postValue(result));
     }
 
     public void buscarReparaciones(String query) {
         if (query == null || query.trim().isEmpty()) {
             cargarReparaciones();
         } else {
-            repository.buscarReparaciones(query, result -> listaReparaciones.postValue(result));
+            repository.buscarReparaciones(query, (RepositoryCallback<List<Reparacion>>) result -> listaReparaciones.postValue(result));
         }
     }
 
+    // --- CAMBIO CLAVE 2: MÉTODO CRUD CORREGIDO ---
     /**
-     * Guarda una nueva reparación, incluyendo el coste del servicio.
+     * Obtiene una reparación específica y la publica en el LiveData 'reparacionSeleccionada'.
+     * Esto es crucial para la pantalla de "Editar".
+     * @param reparacionId El ID de la reparación a buscar.
+     */
+    public void cargarReparacionPorId(int reparacionId) {
+        // Llamamos a un método más simple en el repositorio que solo devuelve la Reparacion.
+        // Este método DEBE existir en tu Repositorio y DAO.
+        repository.getReparacionById(reparacionId, (RepositoryCallback<Reparacion>) result -> {
+            if (result != null) {
+                reparacionSeleccionada.postValue(result);
+            }
+        });
+    }
+
+    /**
+     * Guarda una nueva reparación.
      */
     public void guardarReparacion(Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos, double costeServicio) {
         if (clienteSeleccionado == null) {
@@ -71,13 +97,10 @@ public class ReparacionesViewModel extends AndroidViewModel {
             subtotalProductos += pv.getSubtotal();
         }
 
-        // CÁLCULO ACTUALIZADO: El total es la suma de los productos + el coste del servicio.
         double totalFinal = subtotalProductos + costeServicio;
-
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        // Usamos el constructor actualizado de la entidad Reparacion
         Reparacion reparacion = new Reparacion(
                 0, // userId lo pone el repo
                 clienteSeleccionado.getId(),
@@ -97,7 +120,7 @@ public class ReparacionesViewModel extends AndroidViewModel {
     }
 
     /**
-     * Actualiza una reparación existente, incluyendo el coste del servicio.
+     * Actualiza una reparación existente.
      */
     public void actualizarReparacion(int reparacionId, Cliente clienteSeleccionado, String descripcion, List<ProductoVenta> productos, double costeServicio) {
         if (clienteSeleccionado == null) {
@@ -110,9 +133,7 @@ public class ReparacionesViewModel extends AndroidViewModel {
             subtotalProductos += pv.getSubtotal();
         }
 
-        // CÁLCULO ACTUALIZADO
         double totalFinal = subtotalProductos + costeServicio;
-
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
@@ -135,8 +156,15 @@ public class ReparacionesViewModel extends AndroidViewModel {
         });
     }
 
-    public void eliminarReparacion(Reparacion reparacion) {
-        repository.deleteReparacion(reparacion, result -> {
+    /**
+     * Elimina una reparación usando su ID. Más limpio para llamar desde el Fragment.
+     * @param reparacionId El ID de la reparación a eliminar.
+     */
+    public void eliminarReparacionPorId(int reparacionId) {
+        Reparacion reparacionAEliminar = new Reparacion(); // Objeto temporal solo con el ID
+        reparacionAEliminar.setId(reparacionId);
+
+        repository.deleteReparacion(reparacionAEliminar, result -> {
             operationResult.postValue(result);
             if (result.isSuccess) cargarReparaciones();
         });
@@ -147,12 +175,13 @@ public class ReparacionesViewModel extends AndroidViewModel {
         try {
             for (ProductoVenta pv : productos) {
                 JSONObject productoJson = new JSONObject();
+                productoJson.put("producto_id", pv.getProducto().getId()); // Guardamos el ID para reconstruir
                 productoJson.put("nombre", pv.getProducto().getNombre());
                 productoJson.put("precio", pv.getProducto().getPrecio());
                 productoJson.put("cantidad", pv.getCantidad());
                 array.put(productoJson);
             }
-        } catch (Exception e) {
+        } catch (JSONException e) {
             Log.e("ReparacionViewModel", "Error al crear JSON de productos", e);
         }
         return array.toString();

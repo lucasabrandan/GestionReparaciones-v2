@@ -124,7 +124,7 @@ public class ClientesFragment extends Fragment implements ClientesAdapter.OnClie
     }
 
     /**
-     * Muestra el diálogo (YA NO PIDE LAT/LON).
+     * Muestra el diálogo.
      */
     private void mostrarDialogoCliente(@Nullable Cliente cliente) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
@@ -132,12 +132,13 @@ public class ClientesFragment extends Fragment implements ClientesAdapter.OnClie
         View dialogView = inflater.inflate(R.layout.dialog_nuevo_cliente, null);
         builder.setView(dialogView);
 
-        EditText etDni = dialogView.findViewById(R.id.etDniDialog);
+        // --- ¡AQUÍ LA CORRECCIÓN! ---
+        // Se usan los IDs estandarizados del archivo XML que ahora terminan en "ClienteDialog" o "CpClienteDialog".
+        EditText etDni = dialogView.findViewById(R.id.etDniClienteDialog);
         EditText etNombre = dialogView.findViewById(R.id.etNombreClienteDialog);
-        EditText etDireccion = dialogView.findViewById(R.id.etDireccionDialog);
-        EditText etLocalidad = dialogView.findViewById(R.id.etLocalidadDialog);
-        EditText etCodigoPostal = dialogView.findViewById(R.id.etCodigoPostalDialog);
-        // ELIMINADOS: etLatitud y etLongitud
+        EditText etDireccion = dialogView.findViewById(R.id.etDireccionClienteDialog);
+        EditText etLocalidad = dialogView.findViewById(R.id.etLocalidadClienteDialog);
+        EditText etCodigoPostal = dialogView.findViewById(R.id.etCpClienteDialog);
 
         Button btnGuardarCliente = dialogView.findViewById(R.id.btnGuardarClienteDialog);
         Button btnCancelarCliente = dialogView.findViewById(R.id.btnCancelarClienteDialog);
@@ -149,7 +150,6 @@ public class ClientesFragment extends Fragment implements ClientesAdapter.OnClie
             etDireccion.setText(cliente.getDireccion());
             etLocalidad.setText(cliente.getLocalidad());
             etCodigoPostal.setText(cliente.getCodigoPostal());
-            // No mostramos Lat/Lon, se recalcularán al guardar
             etDni.setEnabled(false); // No se puede editar el DNI (clave de negocio)
         } else { // Modo Crear
             builder.setTitle("Nuevo Cliente");
@@ -164,13 +164,12 @@ public class ClientesFragment extends Fragment implements ClientesAdapter.OnClie
             String direccion = etDireccion.getText().toString().trim();
             String localidad = etLocalidad.getText().toString().trim();
             String codigoPostal = etCodigoPostal.getText().toString().trim();
-            // ELIMINADOS: latStr y lonStr
 
             if (cliente == null) {
-                // Modo CREAR (Sin Lat/Lon)
+                // Modo CREAR
                 viewModel.guardarCliente(dni, nombre, direccion, localidad, codigoPostal);
             } else {
-                // Modo EDITAR (Sin Lat/Lon)
+                // Modo EDITAR
                 viewModel.actualizarCliente(cliente.getId(), dni, nombre, direccion, localidad, codigoPostal);
             }
             dialog.dismiss();
