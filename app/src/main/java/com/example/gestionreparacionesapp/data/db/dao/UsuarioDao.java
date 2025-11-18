@@ -31,7 +31,7 @@ public interface UsuarioDao {
     @Query("UPDATE usuarios SET recordarme = 0")
     void limpiarRecordarme();
 
-    // CLAVE PARA PERSISTENCIA: Obtiene usuario por ID.
+    // CLAVE PARA PERSISTENCIA (¡EL QUE FALTABA!): Obtiene usuario por ID.
     @Query("SELECT * FROM usuarios WHERE id = :id LIMIT 1")
     Usuario getUsuarioById(int id);
 

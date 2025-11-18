@@ -22,15 +22,18 @@ public interface ReparacionDao {
     @Delete
     void delete(Reparacion reparacion);
 
-    @Query("SELECT * FROM reparaciones ORDER BY id DESC")
-    List<Reparacion> getAll();
+    // CAMBIO: Filtrado por Usuario
+    @Query("SELECT * FROM reparaciones WHERE userId = :userId ORDER BY id DESC")
+    List<Reparacion> getAll(int userId);
 
     @Query("SELECT * FROM reparaciones WHERE id = :id LIMIT 1")
     Reparacion getById(int id);
 
-    @Query("SELECT * FROM reparaciones WHERE clienteId = :clienteId ORDER BY fecha DESC")
-    List<Reparacion> getByCliente(int clienteId);
+    // CAMBIO: Filtrado por Usuario
+    @Query("SELECT * FROM reparaciones WHERE clienteId = :clienteId AND userId = :userId ORDER BY fecha DESC")
+    List<Reparacion> getByCliente(int clienteId, int userId);
 
-    @Query("SELECT * FROM reparaciones WHERE fecha = :fecha ORDER BY id DESC")
-    List<Reparacion> getByFecha(String fecha);
+    // CAMBIO: Búsqueda filtrada por usuario
+    @Query("SELECT * FROM reparaciones WHERE userId = :userId AND (descripcion LIKE '%' || :query || '%' OR fecha LIKE '%' || :query || '%') ORDER BY id DESC")
+    List<Reparacion> buscar(String query, int userId);
 }

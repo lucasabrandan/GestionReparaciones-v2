@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,29 +13,36 @@
     android:fitsSystemWindows="true"
     tools:context=".ui.home.DashboardFragment">
 
-    <!-- ELIMINADO: El TextView con el título fijo "Gestión Reparaciones"
-         para evitar duplicidad. -->
+    <!-- MEJORA 1: Logo añadido para coherencia de marca -->
+    <ImageView
+        android:id="@+id/ivLogoDashboard"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:src="@drawable/app_logo"
+        android:contentDescription="@string/app_name" />
 
-    <!-- Título de Bienvenida (MVVM se encargará de rellenarlo) -->
+    <!-- Título de Bienvenida -->
     <TextView
         android:id="@+id/tvBienvenida"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="40dp"
-        android:textAppearance="?attr/textAppearanceHeadlineSmall"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="24dp"
+        android:textAppearance="?attr/textAppearanceTitleLarge"
         android:textColor="?attr/colorPrimary"
         tools:text="¡Bienvenido, Esteban Martínez!" />
 
-    <!-- Botones de Acción Principales (Material 3) -->
+    <!-- Botones de Acción Principales -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:gravity="center_horizontal">
 
-        <!-- Botón 1: Ventas -->
+        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnVentas"
             android:layout_width="match_parent"
@@ -43,9 +51,12 @@
             android:layout_marginBottom="16dp"
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:icon="@drawable/ic_ventas"
+            app:backgroundTint="@color/blue_button"
+            android:textColor="@color/background"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- Botón 2: Reparaciones -->
+        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnReparaciones"
             android:layout_width="match_parent"
@@ -54,9 +65,12 @@
             android:layout_marginBottom="16dp"
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:icon="@drawable/ic_reparaciones"
+            app:backgroundTint="@color/blue_button"
+            android:textColor="@color/background"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- Botón 3: Clientes -->
+        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClientes"
             android:layout_width="match_parent"
@@ -65,9 +79,12 @@
             android:layout_marginBottom="16dp"
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:icon="@drawable/ic_clientes"
+            app:backgroundTint="@color/blue_button"
+            android:textColor="@color/background"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- Botón 4: Productos -->
+        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnProductos"
             android:layout_width="match_parent"
@@ -75,6 +92,9 @@
             android:text="@string/productos"
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
+            app:icon="@drawable/ic_productos"
+            app:backgroundTint="@color/blue_button"
+            android:textColor="@color/background"
             style="@style/Widget.Material3.Button"/>
 
     </LinearLayout>

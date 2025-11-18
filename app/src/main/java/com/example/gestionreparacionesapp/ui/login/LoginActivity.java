@@ -15,16 +15,15 @@ import com.example.gestionreparacionesapp.data.db.entity.Usuario;
 import com.example.gestionreparacionesapp.data.util.ResultadoLogin;
 import com.example.gestionreparacionesapp.ui.home.HomeActivity;
 import com.example.gestionreparacionesapp.ui.registro.RegistroActivity;
+import com.example.gestionreparacionesapp.util.SessionManager; // <-- ¡IMPORTAMOS EL SESSION MANAGER!
 
-import com.google.android.material.switchmaterial.SwitchMaterial; // <--- ¡NUEVO IMPORT CLAVE!
+import com.google.android.material.switchmaterial.SwitchMaterial;
 
 public class LoginActivity extends AppCompatActivity {
 
     private EditText etEmail, etPassword;
     private Button btnIngresar;
     private TextView tvRegistrate;
-
-    // CORRECCIÓN: Usar SwitchMaterial en lugar de android.widget.Switch
     private SwitchMaterial swRecordarme;
 
     private LoginViewModel viewModel;
@@ -43,7 +42,8 @@ public class LoginActivity extends AppCompatActivity {
         // 1. Verificar si hay un usuario recordado (para inicio rápido)
         viewModel.getRememberedUser().observe(this, usuario -> {
             if (usuario != null) {
-                // Si hay un usuario recordado, iniciar HomeActivity directamente
+                // ¡MEJORA APLICADA! Guardamos la sesión del usuario recordado
+                SessionManager.saveUserId(this, usuario.getId());
                 handleSuccessfulLogin(usuario);
             }
         });
@@ -54,7 +54,6 @@ public class LoginActivity extends AppCompatActivity {
         etPassword = findViewById(R.id.etPassword);
         btnIngresar = findViewById(R.id.btnIngresar);
         tvRegistrate = findViewById(R.id.tvRegistrate);
-        // CORRECCIÓN: El cast implícito ahora es a SwitchMaterial
         swRecordarme = findViewById(R.id.swRecordarme);
     }
 
@@ -76,6 +75,8 @@ public class LoginActivity extends AppCompatActivity {
         viewModel.getLoginResult().observe(this, result -> {
             Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show();
             if (result.isSuccess) {
+                // ¡MEJORA APLICADA! Guardamos la sesión del nuevo login
+                SessionManager.saveUserId(this, result.usuario.getId());
                 handleSuccessfulLogin(result.usuario);
             }
         });

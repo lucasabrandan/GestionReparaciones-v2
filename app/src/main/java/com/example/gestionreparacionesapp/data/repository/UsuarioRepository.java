@@ -4,16 +4,11 @@ import android.os.AsyncTask;
 
 import com.example.gestionreparacionesapp.data.db.dao.UsuarioDao;
 import com.example.gestionreparacionesapp.data.db.entity.Usuario;
-import com.example.gestionreparacionesapp.data.util.RepositoryCallback; // Interfaz pública
-import com.example.gestionreparacionesapp.data.util.ResultadoLogin;     // Clase de resultado pública
-import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;   // Clase de resultado pública
-import com.example.gestionreparacionesapp.util.PasswordUtils; // <--- ¡ESTE ES EL IMPORT FALTANTE!
+import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
+import com.example.gestionreparacionesapp.data.util.ResultadoLogin;
+import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
+import com.example.gestionreparacionesapp.util.PasswordUtils;
 
-/**
- * Repositorio que maneja las operaciones de persistencia de usuarios.
- * Ejecuta las operaciones de la BBDD de Room en un hilo secundario (AsyncTask)
- * y contiene la lógica de negocio, como el hashing de contraseñas.
- */
 public class UsuarioRepository {
     private final UsuarioDao usuarioDao;
 
@@ -25,10 +20,6 @@ public class UsuarioRepository {
     // 1. MÉTODOS DE REGISTRO
     // ==========================================
 
-    /**
-     * Inserta un nuevo usuario de forma asíncrona.
-     * @param callback Notifica el resultado del registro.
-     */
     public void insertarUsuario(Usuario usuario, RepositoryCallback<ResultadoRegistro> callback) {
         new InsertUsuarioAsyncTask(usuarioDao, callback).execute(usuario);
     }
@@ -49,10 +40,8 @@ public class UsuarioRepository {
                 return new ResultadoRegistro(false, "Este correo ya está registrado.");
             }
 
-            // HASHING DE CONTRASEÑA (Seguridad - Requisito del TP)
             String rawPassword = nuevoUsuario.getPassword();
             try {
-                // Aquí usa PasswordUtils
                 String hashedPassword = PasswordUtils.hashPassword(rawPassword);
                 nuevoUsuario.setPassword(hashedPassword);
             } catch (RuntimeException e) {
@@ -80,10 +69,6 @@ public class UsuarioRepository {
     // 2. MÉTODOS DE LOGIN
     // ==========================================
 
-    /**
-     * Intenta el login de forma asíncrona.
-     * @param rawPassword Contraseña en texto plano para verificación con hash.
-     */
     public void loginUsuario(String email, String rawPassword, RepositoryCallback<ResultadoLogin> callback) {
         new LoginUsuarioAsyncTask(usuarioDao, callback, rawPassword).execute(email);
     }
@@ -110,7 +95,6 @@ public class UsuarioRepository {
 
             String hashedPassword = usuario.getPassword();
 
-            // Aquí usa PasswordUtils
             if (PasswordUtils.checkPassword(rawPassword, hashedPassword)) {
                 return new ResultadoLogin(true, "Login exitoso", usuario);
             } else {
@@ -130,9 +114,6 @@ public class UsuarioRepository {
     // 3. MÉTODOS DE PERSISTENCIA (RECORDARME)
     // ==========================================
 
-    /**
-     * Busca si hay un usuario con la bandera 'recordarme' activa.
-     */
     public void getUsuarioRecordado(RepositoryCallback<Usuario> callback) {
         new GetUsuarioRecordadoAsyncTask(usuarioDao, callback).execute();
     }
@@ -159,9 +140,6 @@ public class UsuarioRepository {
         }
     }
 
-    /**
-     * Limpia el estado 'recordarme' de todos los usuarios.
-     */
     public void limpiarRecordarme() {
         new LimpiarRecordarmeAsyncTask(usuarioDao).execute();
     }
@@ -180,9 +158,6 @@ public class UsuarioRepository {
         }
     }
 
-    /**
-     * Establece o elimina la bandera 'recordarme' para un usuario específico.
-     */
     public void setRecordarme(int userId, boolean recordarme) {
         new SetRecordarmeAsyncTask(usuarioDao, userId, recordarme).execute();
     }
@@ -200,6 +175,7 @@ public class UsuarioRepository {
 
         @Override
         protected Void doInBackground(Void... voids) {
+            // ¡AQUÍ ES DONDE SE USA EL MÉTODO DEL DAO!
             Usuario usuario = asyncUsuarioDao.getUsuarioById(userId);
             if (usuario != null) {
                 usuario.setRecordarme(recordarme);

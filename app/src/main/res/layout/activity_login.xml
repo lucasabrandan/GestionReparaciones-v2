@@ -5,7 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="?attr/android:colorBackground">
+    android:background="?attr/android:colorBackground"
+    android:fitsSystemWindows="true"
+    tools:context=".ui.login.LoginActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -23,6 +25,16 @@
             android:layout_marginBottom="16dp"
             android:src="@drawable/app_logo"
             android:contentDescription="@string/app_name" />
+
+        <!-- NUEVO: Título de la pantalla para coherencia con Registro -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/ingresar"
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorPrimary"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp"/>
 
         <!-- Email -->
         <com.google.android.material.textfield.TextInputLayout
@@ -140,7 +152,4 @@
                 android:layout_marginStart="4dp" />
         </LinearLayout>
     </LinearLayout>
-
-    <!-- 🛑 ELIMINADO: Componente duplicado que causaba conflicto de IDs -->
-
 </ScrollView>

@@ -23,7 +23,7 @@
     <string name="no_tienes_cuenta">¿No tenés cuenta?</string>
     <string name="registrate">Regístrate</string>
 
-    <!-- Registro (Cadenas FALTANTES) -->
+    <!-- Registro -->
     <string name="registro">Registro</string>
     <string name="ingrese_nombre_completo">Ingrese su nombre completo:</string>
     <string name="ingrese_usuario">Ingrese un usuario:</string>
@@ -67,4 +67,5 @@
     <string name="precio">Precio:</string>
     <string name="cantidad">Cantidad</string>
     <string name="producto_guardado">¡Producto guardado con éxito!</string>
+    <string name="nuevo_producto">Nuevo Producto</string> <!-- ¡CADENA AÑADIDA! -->
 </resources>

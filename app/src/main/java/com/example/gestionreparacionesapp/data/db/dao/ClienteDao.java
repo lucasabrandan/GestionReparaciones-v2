@@ -22,12 +22,25 @@ public interface ClienteDao {
     @Delete
     void delete(Cliente cliente);
 
-    @Query("SELECT * FROM clientes ORDER BY nombre ASC")
-    List<Cliente> getAll();
+    // CAMBIO: Filtrado por Usuario
+    @Query("SELECT * FROM clientes WHERE userId = :userId ORDER BY nombre ASC")
+    List<Cliente> getAll(int userId);
 
     @Query("SELECT * FROM clientes WHERE id = :id LIMIT 1")
     Cliente getById(int id);
 
-    @Query("SELECT * FROM clientes WHERE nombre LIKE '%' || :nombre || '%'")
-    List<Cliente> buscarPorNombre(String nombre);
+    // CAMBIO: DNI único por usuario
+    @Query("SELECT * FROM clientes WHERE dni = :dni AND userId = :userId LIMIT 1")
+    Cliente getByDni(String dni, int userId);
+
+    // CAMBIO: Búsqueda filtrada por usuario
+    @Query("SELECT * FROM clientes WHERE userId = :userId AND (nombre LIKE '%' || :query || '%' OR dni LIKE '%' || :query || '%')")
+    List<Cliente> buscarPorNombre(String query, int userId);
+
+    // CAMBIO: Filtros filtrados por usuario
+    @Query("SELECT * FROM clientes WHERE userId = :userId AND id IN (SELECT DISTINCT clienteId FROM ventas)")
+    List<Cliente> getClientesConVentas(int userId);
+
+    @Query("SELECT * FROM clientes WHERE userId = :userId AND id IN (SELECT DISTINCT clienteId FROM reparaciones)")
+    List<Cliente> getClientesConReparaciones(int userId);
 }

@@ -13,9 +13,14 @@ import com.example.gestionreparacionesapp.R;
 
 import java.util.regex.Pattern;
 
+// Importamos el componente de Material
+import com.google.android.material.textfield.TextInputEditText;
+
 public class RegistroActivity extends AppCompatActivity {
 
-    private EditText etNombreCompleto, etCorreo, etConfirmarCorreo, etContrasena, etTelefono;
+    // CAMBIO: Usamos TextInputEditText para Material 3
+    private TextInputEditText etNombreCompleto, etCorreo, etConfirmarCorreo, etContrasena, etTelefono;
+    // ELIMINADO: etUsuario
     private Button btnCancelar, btnContinuar;
 
     private RegistroViewModel viewModel;
@@ -34,6 +39,7 @@ public class RegistroActivity extends AppCompatActivity {
 
     private void initViews() {
         etNombreCompleto = findViewById(R.id.etNombreCompleto);
+        // etUsuario = findViewById(R.id.etUsuario); // <-- ELIMINADO
         etCorreo = findViewById(R.id.etCorreo);
         etConfirmarCorreo = findViewById(R.id.etConfirmarCorreo);
         etContrasena = findViewById(R.id.etContrasena);
@@ -63,7 +69,7 @@ public class RegistroActivity extends AppCompatActivity {
         String contrasena = etContrasena.getText().toString().trim();
         String telefono = etTelefono.getText().toString().trim();
 
-        // VALIDACIÓN RÁPIDA DE LA VISTA (5 campos principales)
+        // VALIDACIÓN RÁPIDA (Sin 'usuario')
         if (nombre.isEmpty() || correo.isEmpty() || confirmarCorreo.isEmpty() || contrasena.isEmpty() || telefono.isEmpty()) {
             Toast.makeText(this, "Por favor complete todos los campos", Toast.LENGTH_SHORT).show();
             return;
@@ -79,7 +85,7 @@ public class RegistroActivity extends AppCompatActivity {
             return;
         }
 
-        // LLAMADA CORREGIDA: ENVIANDO 5 ARGUMENTOS (nombre, correo, confirmarCorreo, contrasena, telefono)
+        // Llamada de 5 argumentos (La que ya teníamos)
         viewModel.registrarUsuario(nombre, correo, confirmarCorreo, contrasena, telefono);
     }
 

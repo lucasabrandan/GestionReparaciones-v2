@@ -16,9 +16,21 @@ import java.util.List;
 public class ClientesAdapter extends RecyclerView.Adapter<ClientesAdapter.ClienteViewHolder> {
 
     private List<Cliente> listaClientes;
+    private final OnClienteInteractionListener listener;
 
-    public ClientesAdapter(List<Cliente> listaClientes) {
+    public interface OnClienteInteractionListener {
+        void onClienteClick(Cliente cliente);
+        void onClienteLongClick(Cliente cliente);
+    }
+
+    public ClientesAdapter(List<Cliente> listaClientes, OnClienteInteractionListener listener) {
         this.listaClientes = listaClientes;
+        this.listener = listener;
+    }
+
+    public void setClientes(List<Cliente> clientes) {
+        this.listaClientes = clientes;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -31,27 +43,32 @@ public class ClientesAdapter extends RecyclerView.Adapter<ClientesAdapter.Client
     @Override
     public void onBindViewHolder(@NonNull ClienteViewHolder holder, int position) {
         Cliente cliente = listaClientes.get(position);
-
         holder.tvNombreCliente.setText(cliente.getNombre());
+        holder.tvDni.setText("DNI: " + cliente.getDni()); // Mostrar DNI
         holder.tvDireccion.setText(cliente.getDireccion());
-        holder.tvLocalidad.setText(cliente.getLocalidad());
-        holder.tvCodigoPostal.setText(cliente.getCodigoPostal());
+        holder.tvLocalidadYCP.setText(cliente.getLocalidad() + " (" + cliente.getCodigoPostal() + ")");
+
+        holder.itemView.setOnClickListener(v -> listener.onClienteClick(cliente));
+        holder.itemView.setOnLongClickListener(v -> {
+            listener.onClienteLongClick(cliente);
+            return true;
+        });
     }
 
     @Override
     public int getItemCount() {
-        return listaClientes.size();
+        return listaClientes != null ? listaClientes.size() : 0;
     }
 
     static class ClienteViewHolder extends RecyclerView.ViewHolder {
-        TextView tvNombreCliente, tvDireccion, tvLocalidad, tvCodigoPostal;
+        TextView tvNombreCliente, tvDni, tvDireccion, tvLocalidadYCP;
 
         public ClienteViewHolder(@NonNull View itemView) {
             super(itemView);
-            tvNombreCliente = itemView.findViewById(R.id.tvNombreCliente);
-            tvDireccion = itemView.findViewById(R.id.tvDireccion);
-            tvLocalidad = itemView.findViewById(R.id.tvLocalidad);
-            tvCodigoPostal = itemView.findViewById(R.id.tvCodigoPostal);
+            tvNombreCliente = itemView.findViewById(R.id.tvNombreClienteItem);
+            tvDni = itemView.findViewById(R.id.tvDniItem); // Vincular DNI
+            tvDireccion = itemView.findViewById(R.id.tvDireccionItem);
+            tvLocalidadYCP = itemView.findViewById(R.id.tvLocalidadYCPItem);
         }
     }
 }

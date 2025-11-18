@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.reparaciones.ReparacionesFragment">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Campo de Búsqueda (EditText) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilBuscadorReparaciones"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:startIconDrawable="@drawable/ic_search"
+            android:hint="Buscar por descripción o fecha...">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etBuscadorReparaciones"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- RecyclerView (ahora debajo del buscador) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewReparaciones"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/tilBuscadorReparaciones"
+            android:padding="8dp"
+            tools:listitem="@layout/item_reparacion" />
+
+        <TextView
+            android:id="@+id/tvSinReparaciones"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No hay reparaciones registradas."
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:layout_centerInParent="true"
+            android:visibility="gone" />
+    </RelativeLayout>
+
+    <!-- Botón Flotante (FAB) para añadir nuevas reparaciones -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAgregarReparacion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="Agregar Nueva Reparación" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

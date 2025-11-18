@@ -1,160 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/background">
+    android:background="?attr/android:colorBackground"
+    android:fitsSystemWindows="true"
+    tools:context=".ui.registro.RegistroActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="24dp"
+        android:gravity="center_horizontal">
 
-        <!-- Título -->
+        <!-- SOLUCIÓN 2: AÑADIDO EL LOGO PARA COHERENCIA -->
+        <ImageView
+            android:id="@+id/ivLogo"
+            android:layout_width="160dp"
+            android:layout_height="160dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="16dp"
+            android:src="@drawable/app_logo"
+            android:contentDescription="@string/app_name" />
+
+        <!-- SOLUCIÓN 1: El 'fitsSystemWindows' del ScrollView arregla el corte de este título -->
         <TextView
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/registro"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@color/black"
-            android:gravity="center"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="24dp" />
+            android:textAppearance="?attr/textAppearanceHeadlineMedium"
+            android:textColor="?attr/colorPrimary"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="24dp"/>
 
         <!-- Nombre Completo -->
-        <TextView
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/ingrese_nombre_completo"
-            android:textSize="14sp"
-            android:textColor="@color/black"
-            android:layout_marginTop="8dp" />
+            android:hint="@string/ingrese_nombre_completo"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etNombreCompleto"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName|textCapWords" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/etNombreCompleto"
+        <!-- Email -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Esteban"
-            android:inputType="textPersonName"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
+            android:hint="@string/ingrese_correo"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCorreo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Usuario -->
-        <TextView
+        <!-- Confirmar Email -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/ingrese_usuario"
-            android:textSize="14sp"
-            android:textColor="@color/black" />
+            android:hint="@string/confirme_correo"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etConfirmarCorreo"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textEmailAddress" />
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/etUsuario"
+        <!-- Contraseña (CON TOGGLE) -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="UsuarioEjemplo123"
-            android:inputType="text"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Correo -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ingrese_correo"
-            android:textSize="14sp"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/etCorreo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Correo@ejemplo.com"
-            android:inputType="textEmailAddress"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Confirmar Correo -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/confirme_correo"
-            android:textSize="14sp"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/etConfirmarCorreo"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="Correo@ejemplo.com"
-            android:inputType="textEmailAddress"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
-
-        <!-- Contraseña -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ingrese_contrasena"
-            android:textSize="14sp"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/etContrasena"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/hint_password"
-            android:inputType="textPassword"
-            android:padding="12dp"
-            android:layout_marginBottom="16dp" />
+            android:hint="@string/ingrese_contrasena"
+            app:helperText="@string/hint_password"
+            app:endIconMode="password_toggle"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="16dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etContrasena"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPassword" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Teléfono -->
-        <TextView
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/ingrese_telefono"
-            android:textSize="14sp"
-            android:textColor="@color/black" />
-
-        <EditText
-            android:id="@+id/etTelefono"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="+54280435222"
-            android:inputType="phone"
-            android:padding="12dp"
-            android:layout_marginBottom="32dp" />
+            android:hint="@string/ingrese_telefono"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_marginBottom="24dp">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTelefono"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="phone" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Botones -->
-        <LinearLayout
+        <Button
+            android:id="@+id/btnContinuar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:layout_marginTop="16dp">
+            android:text="@string/continuar"
+            style="@style/Widget.Material3.Button"
+            android:paddingVertical="12dp"/>
 
-            <Button
-                android:id="@+id/btnCancelar"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:text="@string/cancelar"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/red_button"
-                android:layout_marginEnd="8dp" />
-
-            <Button
-                android:id="@+id/btnContinuar"
-                android:layout_width="0dp"
-                android:layout_height="56dp"
-                android:layout_weight="1"
-                android:text="@string/continuar"
-                android:textColor="@color/white"
-                android:backgroundTint="@color/blue_button"
-                android:layout_marginStart="8dp" />
-        </LinearLayout>
+        <Button
+            android:id="@+id/btnCancelar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/cancelar"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_marginTop="8dp"/>
 
     </LinearLayout>
-
 </ScrollView>

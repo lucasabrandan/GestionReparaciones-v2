@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.clientes.ClientesFragment">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- Campo de Búsqueda (EditText) -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilBuscadorClientes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_margin="16dp"
+            app:startIconDrawable="@drawable/ic_person_search"
+            android:hint="Buscar cliente por nombre...">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etBuscadorClientes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:maxLines="1" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- RecyclerView (ahora debajo del buscador) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewClientes"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/tilBuscadorClientes"
+            android:padding="8dp"
+            tools:listitem="@layout/item_cliente" />
+
+        <TextView
+            android:id="@+id/tvSinClientes"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="No hay clientes registrados."
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:layout_centerInParent="true"
+            android.visibility="gone" />
+    </RelativeLayout>
+
+    <!-- Botón Flotante (FAB) para añadir nuevos clientes -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabAgregarCliente"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_add"
+        android:contentDescription="Agregar Nuevo Cliente" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

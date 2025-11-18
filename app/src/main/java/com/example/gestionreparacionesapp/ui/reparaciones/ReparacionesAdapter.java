@@ -21,11 +21,34 @@ import java.util.Locale;
 public class ReparacionesAdapter extends RecyclerView.Adapter<ReparacionesAdapter.ReparacionViewHolder> {
 
     private List<Reparacion> listaReparaciones;
-    private List<Cliente> listaClientes;
+    private List<Cliente> listaClientes; // Necesaria para mostrar el nombre del cliente
+    private final OnReparacionInteractionListener listener;
 
-    public ReparacionesAdapter(List<Reparacion> listaReparaciones, List<Cliente> listaClientes) {
+    public interface OnReparacionInteractionListener {
+        void onReparacionClick(Reparacion reparacion);
+        void onReparacionLongClick(Reparacion reparacion);
+    }
+
+    public ReparacionesAdapter(List<Reparacion> listaReparaciones, List<Cliente> listaClientes, OnReparacionInteractionListener listener) {
         this.listaReparaciones = listaReparaciones;
         this.listaClientes = listaClientes;
+        this.listener = listener;
+    }
+
+    /**
+     * Actualiza la lista de reparaciones.
+     */
+    public void setReparaciones(List<Reparacion> reparaciones) {
+        this.listaReparaciones = reparaciones;
+        notifyDataSetChanged();
+    }
+
+    /**
+     * Actualiza la lista de clientes (necesaria para los nombres).
+     */
+    public void setClientes(List<Cliente> clientes) {
+        this.listaClientes = clientes;
+        notifyDataSetChanged();
     }
 
     @NonNull
@@ -39,40 +62,55 @@ public class ReparacionesAdapter extends RecyclerView.Adapter<ReparacionesAdapte
     public void onBindViewHolder(@NonNull ReparacionViewHolder holder, int position) {
         Reparacion reparacion = listaReparaciones.get(position);
 
-        // ID de la reparación
-        holder.tvReparacionId.setText(String.format("REPARACIÓN #%03d", reparacion.getId()));
+        holder.tvReparacionId.setText(String.format(Locale.getDefault(), "REPARACIÓN #%03d", reparacion.getId()));
 
-        // Fecha
         String fecha = reparacion.getFecha();
         if (fecha.contains(" ")) {
-            fecha = fecha.split(" ")[0];
+            fecha = fecha.split(" ")[0]; // Solo fecha
         }
         holder.tvFecha.setText(fecha);
 
-        // Cliente
-        String nombreCliente = "Cliente desconocido";
-        for (Cliente c : listaClientes) {
-            if (c.getId() == reparacion.getClienteId()) {
-                nombreCliente = c.getNombre();
-                break;
+        // Buscar el nombre del cliente usando el clienteId
+        String nombreCliente = "Cliente (ID: " + reparacion.getClienteId() + ")";
+        if (listaClientes != null) {
+            for (Cliente c : listaClientes) {
+                if (c.getId() == reparacion.getClienteId()) {
+                    nombreCliente = c.getNombre();
+                    break;
+                }
             }
         }
         holder.tvCliente.setText(nombreCliente);
 
-        // Descripción
-        holder.tvDescripcion.setText(reparacion.getDescripcion());
+        // Mostrar descripción o productos
+        if (reparacion.getDescripcion() != null && !reparacion.getDescripcion().isEmpty()) {
+            holder.tvDescripcion.setText(reparacion.getDescripcion());
+            holder.tvDescripcion.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvDescripcion.setVisibility(View.GONE);
+        }
 
-        // Productos (parsear JSON)
+        // Parsear JSON de productos
         String productosTexto = parsearProductos(reparacion.getProductosJson());
-        holder.tvProductos.setText(productosTexto);
+        if (!productosTexto.isEmpty()) {
+            holder.tvProductos.setText(productosTexto);
+            holder.tvProductos.setVisibility(View.VISIBLE);
+        } else {
+            holder.tvProductos.setVisibility(View.GONE);
+        }
 
-        // Total
         holder.tvTotal.setText(String.format(Locale.getDefault(), "$%.2f", reparacion.getTotal()));
+
+        holder.itemView.setOnClickListener(v -> listener.onReparacionClick(reparacion));
+        holder.itemView.setOnLongClickListener(v -> {
+            listener.onReparacionLongClick(reparacion);
+            return true;
+        });
     }
 
     @Override
     public int getItemCount() {
-        return listaReparaciones.size();
+        return listaReparaciones != null ? listaReparaciones.size() : 0;
     }
 
     private String parsearProductos(String productosJson) {
@@ -83,13 +121,13 @@ public class ReparacionesAdapter extends RecyclerView.Adapter<ReparacionesAdapte
                 JSONObject producto = array.getJSONObject(i);
                 String nombre = producto.getString("nombre");
                 int cantidad = producto.getInt("cantidad");
-                resultado.append("• ").append(nombre).append(" x").append(cantidad);
+                resultado.append("• ").append(nombre).append(" (x").append(cantidad).append(")");
                 if (i < array.length() - 1) {
                     resultado.append("\n");
                 }
             }
         } catch (Exception e) {
-            resultado.append("Error al cargar productos");
+            // No hacer nada si el JSON está vacío o es inválido
         }
         return resultado.toString();
     }

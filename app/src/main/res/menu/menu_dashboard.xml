@@ -1,22 +1,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <!-- Botón de Ajustes (icono en el Toolbar) -->
     <item
         android:id="@+id/action_settings"
         android:icon="@drawable/ic_settings"
-        android:title="Ajustes"
+        android:title="@string/settings"
         app:showAsAction="ifRoom" />
 
-    <!-- Opciones del menú (aparecen en el menú de tres puntos) -->
-    <item
-        android:id="@+id/action_toggle_theme"
-        android:title="Cambiar Tema (Light/Dark)"
-        app:showAsAction="never" />
 
-    <item
-        android:id="@+id/action_logout"
-        android:title="Cerrar Sesión"
-        app:showAsAction="never" />
 
 </menu>

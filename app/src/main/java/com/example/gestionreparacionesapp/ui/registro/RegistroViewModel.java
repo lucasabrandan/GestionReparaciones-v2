@@ -45,7 +45,7 @@ public class RegistroViewModel extends AndroidViewModel {
             return;
         }
 
-        // Llamada al Repository: Se usa el correo como NombreUsuario para rellenar la entidad, ya que el campo 'usuario' fue eliminado de la UX.
+        // Llamada al Repository: Se usa el correo como NombreUsuario para rellenar la entidad
         repository.insertarUsuario(
                 new Usuario(nombre, correo /* Usado como NombreUsuario */, correo, contrasena, telefono),
                 result -> {

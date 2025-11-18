@@ -22,15 +22,22 @@ public interface ProductoDao {
     @Delete
     void delete(Producto producto);
 
-    @Query("SELECT * FROM productos ORDER BY nombre ASC")
-    List<Producto> getAll();
+    // CAMBIO: Ahora solo trae los del usuario logueado
+    @Query("SELECT * FROM productos WHERE userId = :userId ORDER BY nombre ASC")
+    List<Producto> getAll(int userId);
 
     @Query("SELECT * FROM productos WHERE id = :id LIMIT 1")
     Producto getById(int id);
 
-    @Query("SELECT * FROM productos WHERE nombre LIKE '%' || :nombre || '%'")
-    List<Producto> buscarPorNombre(String nombre);
+    // CAMBIO: El SKU debe ser único por usuario
+    @Query("SELECT * FROM productos WHERE sku = :sku AND userId = :userId LIMIT 1")
+    Producto getBySku(String sku, int userId);
 
-    @Query("SELECT * FROM productos WHERE cantidad > 0 ORDER BY nombre ASC")
-    List<Producto> getDisponibles();
+    // CAMBIO: La búsqueda ahora se filtra por usuario
+    @Query("SELECT * FROM productos WHERE userId = :userId AND (nombre LIKE '%' || :query || '%' OR sku LIKE '%' || :query || '%')")
+    List<Producto> buscarPorNombre(String query, int userId);
+
+    // CAMBIO: Los disponibles también se filtran por usuario
+    @Query("SELECT * FROM productos WHERE cantidad > 0 AND userId = :userId ORDER BY nombre ASC")
+    List<Producto> getDisponibles(int userId);
 }

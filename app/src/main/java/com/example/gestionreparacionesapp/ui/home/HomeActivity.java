@@ -1,61 +1,54 @@
 package com.example.gestionreparacionesapp.ui.home;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
-import android.content.Intent;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.appcompat.widget.Toolbar; // Import para Toolbar
 
 import com.example.gestionreparacionesapp.R;
-import com.example.gestionreparacionesapp.ui.login.LoginActivity;
-import com.google.android.material.bottomnavigation.BottomNavigationView;
-
-// Importaciones de Fragments (Asegúrate de que estos 4 archivos existan)
-import com.example.gestionreparacionesapp.ui.ventas.VentasFragment;
-import com.example.gestionreparacionesapp.ui.reparaciones.ReparacionesFragment;
 import com.example.gestionreparacionesapp.ui.clientes.ClientesFragment;
+import com.example.gestionreparacionesapp.ui.login.LoginActivity;
 import com.example.gestionreparacionesapp.ui.productos.ProductosFragment;
+import com.example.gestionreparacionesapp.ui.reparaciones.ReparacionesFragment;
+import com.example.gestionreparacionesapp.ui.ventas.VentasFragment;
+import com.example.gestionreparacionesapp.util.SessionManager;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 
 public class HomeActivity extends AppCompatActivity {
 
     private DashboardViewModel dashboardViewModel;
     private BottomNavigationView bottomNavigationView;
-    private Toolbar toolbar; // Declaramos el Toolbar
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        // 1. Establece el Layout
         setContentView(R.layout.activity_home);
 
-        // 2. Inicializar ViewModel
+        // Inicializar ViewModel
         dashboardViewModel = new ViewModelProvider(this).get(DashboardViewModel.class);
 
-        // 3. Vincular Vistas (Toolbar y BottomNavigation)
         initViews();
-
-        // 4. Configurar el Toolbar
         setupToolbar();
-
-        // 5. Configurar la Navegación Inferior
         setupBottomNavigation();
 
-        // 6. Cargar Fragmento Inicial
         if (savedInstanceState == null) {
-            loadFragment(new DashboardFragment());
+            // ¡BUG FIX! Esto soluciona el "Bienvenido Usuario"
+            String userName = getIntent().getStringExtra("USER_NAME");
+            Fragment initialFragment = DashboardFragment.newInstance(userName);
+            loadFragment(initialFragment);
         }
     }
 
     private void initViews() {
-        // Estos IDs DEBEN existir en activity_home.xml
         toolbar = findViewById(R.id.toolbar);
         bottomNavigationView = findViewById(R.id.bottom_navigation);
     }
@@ -73,7 +66,9 @@ public class HomeActivity extends AppCompatActivity {
             Fragment selectedFragment = null;
 
             if (id == R.id.nav_home) {
-                selectedFragment = new DashboardFragment();
+                // Volvemos a pasar el nombre de usuario al Dashboard
+                String userName = getIntent().getStringExtra("USER_NAME");
+                selectedFragment = DashboardFragment.newInstance(userName);
             } else if (id == R.id.nav_ventas) {
                 selectedFragment = new VentasFragment();
             } else if (id == R.id.nav_reparaciones) {
@@ -98,6 +93,7 @@ public class HomeActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        // Usa el menu_dashboard.xml CONSOLIDADO
         getMenuInflater().inflate(R.menu.menu_dashboard, menu);
         return true;
     }
@@ -106,23 +102,53 @@ public class HomeActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.action_logout) {
-            dashboardViewModel.clearRememberMeState();
-            Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
-            return true;
-        } else if (id == R.id.action_toggle_theme) {
-            toggleTheme();
-            return true;
-        } else if (id == R.id.action_settings) {
-            Toast.makeText(this, "Abriendo diálogo de Ajustes...", Toast.LENGTH_SHORT).show();
+        // ¡CAMBIO! Ahora solo hay un botón (Ajustes)
+        if (id == R.id.action_settings) {
+            mostrarDialogoDeAjustes(); // Mostramos el popup
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Muestra el diálogo de Ajustes (SIN "Cancelar").
+     */
+    private void mostrarDialogoDeAjustes() {
+        final CharSequence[] options = {"Cambiar Tema (Light/Dark)", "Cerrar Sesión"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Ajustes de la App");
+        builder.setItems(options, (dialog, which) -> {
+            if (options[which].equals("Cambiar Tema (Light/Dark)")) {
+                toggleTheme(); // Llama a la función de cambiar tema
+            } else if (options[which].equals("Cerrar Sesión")) {
+                cerrarSesion(); // Llama a la función de cerrar sesión
+            }
+        });
+        builder.show();
+    }
+
+    /**
+     * Lógica real de Cerrar Sesión
+     */
+    private void cerrarSesion() {
+        // 1. Limpia el "Recordarme" de la base de datos
+        dashboardViewModel.clearRememberMeState();
+
+        // 2. Limpia el ID de sesión guardado
+        SessionManager.clearSession(this);
+
+        // 3. Vuelve al Login
+        Intent intent = new Intent(HomeActivity.this, LoginActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK); // Borra el historial
+        startActivity(intent);
+        finish();
+    }
+
+    /**
+     * Lógica real de Cambiar Tema
+     */
     private void toggleTheme() {
         int currentNightMode = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
         int newMode = (currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES)

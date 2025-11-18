@@ -5,9 +5,7 @@ import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
-
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
-
 import java.util.List;
 
 @Dao
@@ -22,15 +20,17 @@ public interface VentaDao {
     @Delete
     void delete(Venta venta);
 
-    @Query("SELECT * FROM ventas ORDER BY id DESC")
-    List<Venta> getAll();
+    // CAMBIO: Filtrado por Usuario
+    @Query("SELECT * FROM ventas WHERE userId = :userId ORDER BY id DESC")
+    List<Venta> getAll(int userId);
 
     @Query("SELECT * FROM ventas WHERE id = :id LIMIT 1")
     Venta getById(int id);
 
-    @Query("SELECT * FROM ventas WHERE clienteId = :clienteId ORDER BY fecha DESC")
-    List<Venta> getByCliente(int clienteId);
+    // Mantenemos los otros métodos, pero también los filtramos por usuario
+    @Query("SELECT * FROM ventas WHERE clienteId = :clienteId AND userId = :userId ORDER BY fecha DESC")
+    List<Venta> getByCliente(int clienteId, int userId);
 
-    @Query("SELECT * FROM ventas WHERE fecha = :fecha ORDER BY id DESC")
-    List<Venta> getByFecha(String fecha);
+    @Query("SELECT * FROM ventas WHERE fecha = :fecha AND userId = :userId ORDER BY id DESC")
+    List<Venta> getByFecha(String fecha, int userId);
 }
