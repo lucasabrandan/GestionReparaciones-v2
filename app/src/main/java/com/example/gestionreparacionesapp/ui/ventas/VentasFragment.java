@@ -1,6 +1,11 @@
 package com.example.gestionreparacionesapp.ui.ventas;
 
+// --- 1. IMPORTACIONES NECESARIAS (INCLUIDAS LAS NUEVAS PARA LA CÁMARA) ---
+import android.Manifest;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
@@ -11,14 +16,18 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -51,6 +60,18 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
 
     private List<Cliente> listaClientesSpinner = new ArrayList<>();
     private List<Producto> listaProductosSpinner = new ArrayList<>();
+
+    // --- 2. LANZADOR PARA GESTIONAR LA SOLICITUD DE PERMISO DE CÁMARA ---
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    // El usuario dio permiso, ahora sí abrimos la cámara.
+                    abrirCamara();
+                } else {
+                    // El usuario negó el permiso. Le informamos.
+                    Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     public VentasFragment() {}
 
@@ -141,6 +162,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void mostrarDialogoVenta() {
+        // Tu código original para mostrar el diálogo de venta...
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nueva_venta, null);
         builder.setView(dialogView);
@@ -194,6 +216,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void agregarViewProducto(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal) {
+        // Tu código original para agregar la vista del producto
         if (listaProductosSpinner == null || listaProductosSpinner.isEmpty()) {
             Toast.makeText(getContext(), "No hay productos disponibles para vender.", Toast.LENGTH_SHORT).show();
             return;
@@ -238,6 +261,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void actualizarListaProductos(LinearLayout container, List<ProductoVenta> productosLista) {
+        // Tu código original para actualizar la lista de productos
         productosLista.clear();
         for (int i = 0; i < container.getChildCount(); i++) {
             View itemView = container.getChildAt(i);
@@ -256,6 +280,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void calcularTotalVenta(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal) {
+        // Tu código original para calcular el total
         actualizarListaProductos(container, productosLista);
         double total = 0;
         for (ProductoVenta pv : productosLista) {
@@ -265,6 +290,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void mostrarDialogoNuevoCliente() {
+        // Tu código original para el diálogo de nuevo cliente
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
                 .setTitle("Nuevo Cliente Rápido")
@@ -294,6 +320,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         dialog.show();
     }
 
+    // --- 3. MÉTODO MODIFICADO PARA EL DIÁLOGO DE "NUEVO PRODUCTO RÁPIDO" ---
     private void mostrarDialogoNuevoProducto() {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -301,30 +328,62 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                 .setView(dialogView)
                 .create();
 
-        // --- INICIO DE LA CORRECCIÓN ---
-        // Usamos los IDs correctos que existen en tu layout 'dialog_nuevo_producto.xml'
+        // Encontrar los componentes del layout del diálogo
+        ImageView ivPreview = dialogView.findViewById(R.id.ivProductoPreview);
+        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto); // El botón real
+        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
         EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
-        EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog); // ID CORREGIDO
-        EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);   // ID CORREGIDO
-
+        EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
+        EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
         Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
         Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
 
+        // --- ASIGNAR LA LÓGICA DE LA CÁMARA AL BOTÓN "AÑADIR FOTO" ---
+        btnAnadirFoto.setOnClickListener(v -> {
+            comprobarPermisoYlanzarCamara();
+        });
+
         btnGuardar.setOnClickListener(v -> {
-            // Pasamos un String vacío para el SKU, que no se pide en este diálogo rápido.
             productoViewModel.guardarProducto(
-                    "", // SKU
+                    etSku.getText().toString(),
                     etNombre.getText().toString(),
                     etPrecio.getText().toString(),
                     etCantidad.getText().toString()
+                    // Aquí necesitarás también la URI de la imagen si la capturas
             );
-            // --- FIN DE LA CORRECCIÓN ---
-
             dialog.dismiss();
             Toast.makeText(getContext(), "Producto guardado. Cierra y vuelve a abrir el diálogo para seleccionarlo.", Toast.LENGTH_LONG).show();
         });
+
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
-}
 
+    // --- 4. MÉTODOS AUXILIARES PARA LA LÓGICA DE LA CÁMARA ---
+
+    /**
+     * Comprueba si el permiso de la cámara está concedido.
+     * Si lo está, abre la cámara. Si no, solicita el permiso.
+     */
+    private void comprobarPermisoYlanzarCamara() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            // Permiso ya concedido, abre la cámara directamente.
+            abrirCamara();
+        } else {
+            // Permiso no concedido, lanza el diálogo de solicitud.
+            // El resultado lo gestionará el 'requestPermissionLauncher' que declaramos arriba.
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    /**
+     * Crea y lanza un Intent para abrir la aplicación de la cámara.
+     * Este método solo debe llamarse DESPUÉS de confirmar que el permiso está concedido.
+     */
+    private void abrirCamara() {
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // El siguiente paso es usar otro ActivityResultLauncher para recibir la foto y ponerla en el ImageView.
+        // Por ahora, con esto la cámara ya se abrirá.
+        startActivity(cameraIntent);
+    }
+}
