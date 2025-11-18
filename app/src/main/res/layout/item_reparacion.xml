@@ -14,40 +14,32 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- ID de la Reparación (El que causaba el error original) -->
-        <TextView
-            android:id="@+id/tvReparacionId"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textStyle="bold"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Reparación #123" />
-
-        <!-- Fecha de la Reparación -->
-        <TextView
-            android:id="@+id/tvFecha"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceBodySmall"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="18-11-2025" />
-
-        <!-- Nombre del Cliente -->
+        <!-- Nombre del Cliente (ID: tvCliente) -->
         <TextView
             android:id="@+id/tvCliente"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvReparacionId"
-            tools:text="Nombre del Cliente Ejemplo" />
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Nombre del Cliente" />
 
-        <!-- Descripción -->
+        <!-- Nombre del Producto (ID: tvProducto) -->
+        <TextView
+            android:id="@+id/tvProducto"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBodyLarge"
+            android:textStyle="italic"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvCliente"
+            tools:text="Producto: Laptop XYZ" />
+
+        <!-- Descripción del Problema (ID: tvDescripcion) -->
         <TextView
             android:id="@+id/tvDescripcion"
             android:layout_width="0dp"
@@ -57,34 +49,37 @@
             android:ellipsize="end"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvCliente"
-            tools:text="Descripción del problema o la reparación realizada. Si el texto es muy largo se cortará..." />
+            app:layout_constraintTop_toBottomOf="@id/tvProducto"
+            tools:text="La pantalla no enciende y hace un ruido extraño al intentar arrancar." />
 
-        <!-- Productos -->
+        <!-- Estado de la Reparación (ID: tvEstado) -->
         <TextView
-            android:id="@+id/tvProductos"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:textStyle="italic"
-            android:textColor="?attr/colorSecondary"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvDescripcion"
-            tools:text="Productos: SSD 1TB, Memoria RAM 16GB" />
-
-        <!-- Total -->
-        <TextView
-            android:id="@+id/tvTotal"
+            android:id="@+id/tvEstado"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:textAppearance="?attr/textAppearanceBodyMedium"
+            android:background="@drawable/rounded_corner_bg"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:textColor="@android:color/white"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvDescripcion"
+            tools:text="Estado: En Proceso"
+            tools:backgroundTint="@android:color/holo_blue_dark"/>
+
+        <!-- Presupuesto (ID: tvPresupuesto) -->
+        <TextView
+            android:id="@+id/tvPresupuesto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             android:textColor="?attr/colorPrimary"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvProductos"
-            tools:text="$150.00" />
+            app:layout_constraintBottom_toBottomOf="@id/tvEstado"
+            app:layout_constraintTop_toTopOf="@id/tvEstado"
+            tools:text="$250.00" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

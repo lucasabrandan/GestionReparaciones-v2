@@ -9,6 +9,7 @@ import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta;
 import com.example.gestionreparacionesapp.util.SessionManager;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
@@ -23,6 +24,7 @@ public class VentaRepository {
         this.ventaDao = ventaDao;
         this.db = AppDatabase.getInstance(application);
         this.databaseWriteExecutor = AppDatabase.databaseWriteExecutor;
+        // Obtenemos el ID del usuario de la sesión al crear el repositorio
         this.userId = SessionManager.getUserId(application);
     }
 
@@ -31,67 +33,97 @@ public class VentaRepository {
      */
     public void insertVenta(Venta venta, List<ProductoVenta> productos, RepositoryCallback<ResultadoRegistro> callback) {
         if (userId == -1) {
-            callback.onComplete(new ResultadoRegistro(false, "Error de sesión de usuario."));
+            callback.onComplete(new ResultadoRegistro(false, "Error de sesión de usuario. Inicie sesión de nuevo."));
             return;
         }
         venta.setUserId(userId);
 
         databaseWriteExecutor.execute(() -> {
-            // Ya no se necesita try-catch para la lógica de negocio, solo para errores inesperados de DB.
             try {
-                // --- LLAMADA AL NUEVO MÉTODO DEL DAO ---
-                long id = db.ventaConProductosDao().insertarVentaYActualizarStock(venta, productos, db);
-
-                if (id > 0) {
-                    // ÉXITO: El ID es positivo
-                    callback.onComplete(new ResultadoRegistro(true, "Venta #" + id + " guardada y stock actualizado."));
+                // Comprobamos si el DAO transaccional está disponible
+                if (db.ventaConProductosDao() != null) {
+                    long id = db.ventaConProductosDao().insertarVentaYActualizarStock(venta, productos, db);
+                    if (id > 0) {
+                        callback.onComplete(new ResultadoRegistro(true, "Venta #" + id + " guardada y stock actualizado."));
+                    } else {
+                        // Si el DAO transaccional devuelve un error (ej. por falta de stock), lo notificamos.
+                        String errorMsg = db.ventaConProductosDao().getMensajeErrorStock();
+                        callback.onComplete(new ResultadoRegistro(false, errorMsg));
+                    }
                 } else {
-                    // FALLO POR STOCK: El ID es -1L
-                    String errorMsg = db.ventaConProductosDao().getMensajeErrorStock();
-                    callback.onComplete(new ResultadoRegistro(false, errorMsg));
+                    // Fallback por si la lógica transaccional no está implementada.
+                    long id = ventaDao.insert(venta);
+                    callback.onComplete(new ResultadoRegistro(true, "Venta #" + id + " guardada (sin transacción de stock)."));
                 }
             } catch (Exception e) {
-                // Este catch es para errores de base de datos inesperados, no para la lógica de stock
+                // Captura para errores inesperados de la base de datos (ej. violaciones de constraints)
                 callback.onComplete(new ResultadoRegistro(false, "Error inesperado en la base de datos: " + e.getMessage()));
             }
         });
     }
 
-    // --- El resto de los métodos no cambian ---
-
+    /**
+     * Obtiene todas las ventas asociadas al usuario actual.
+     */
     public void getAllVentas(RepositoryCallback<List<Venta>> callback) {
         databaseWriteExecutor.execute(() -> {
-            List<Venta> ventas = ventaDao.getAll(userId);
-            callback.onComplete(ventas);
-        });
-    }
-
-    public void buscarVentas(String query, RepositoryCallback<List<Venta>> callback) {
-        databaseWriteExecutor.execute(() -> {
-            List<Venta> ventas = ventaDao.buscar(query, userId);
-            callback.onComplete(ventas);
-        });
-    }
-
-    public void updateVenta(Venta venta, RepositoryCallback<ResultadoRegistro> callback) {
-        venta.setUserId(userId);
-        databaseWriteExecutor.execute(() -> {
             try {
-                ventaDao.update(venta);
-                callback.onComplete(new ResultadoRegistro(true, "Venta actualizada."));
+                // La llamada al DAO ahora coincide con su definición (pasando el userId)
+                List<Venta> ventas = ventaDao.getAll(userId);
+                callback.onComplete(ventas);
             } catch (Exception e) {
-                callback.onComplete(new ResultadoRegistro(false, "Error al actualizar."));
+                // En caso de un error de base de datos, devolvemos una lista vacía para evitar crasheos.
+                callback.onComplete(Collections.emptyList());
             }
         });
     }
 
+    /**
+     * Busca ventas por nombre de cliente o fecha para el usuario actual.
+     */
+    public void buscarVentas(String query, RepositoryCallback<List<Venta>> callback) {
+        databaseWriteExecutor.execute(() -> {
+            try {
+                // La llamada al DAO ahora coincide con su definición (pasando query y userId)
+                List<Venta> ventas = ventaDao.buscar(query, userId);
+                callback.onComplete(ventas);
+            } catch (Exception e) {
+                callback.onComplete(Collections.emptyList());
+            }
+        });
+    }
+
+    /**
+     * Actualiza una venta existente, asegurando que pertenece al usuario actual.
+     */
+    public void updateVenta(Venta venta, RepositoryCallback<ResultadoRegistro> callback) {
+        if (userId == -1) {
+            callback.onComplete(new ResultadoRegistro(false, "Error de sesión de usuario."));
+            return;
+        }
+        // Aseguramos que la venta que se actualiza tiene el ID de usuario correcto.
+        venta.setUserId(userId);
+
+        databaseWriteExecutor.execute(() -> {
+            try {
+                ventaDao.update(venta);
+                callback.onComplete(new ResultadoRegistro(true, "Venta actualizada correctamente."));
+            } catch (Exception e) {
+                callback.onComplete(new ResultadoRegistro(false, "Error al actualizar la venta."));
+            }
+        });
+    }
+
+    /**
+     * Elimina una venta.
+     */
     public void deleteVenta(Venta venta, RepositoryCallback<ResultadoRegistro> callback) {
         databaseWriteExecutor.execute(() -> {
             try {
                 ventaDao.delete(venta);
-                callback.onComplete(new ResultadoRegistro(true, "Venta eliminada."));
+                callback.onComplete(new ResultadoRegistro(true, "Venta eliminada correctamente."));
             } catch (Exception e) {
-                callback.onComplete(new ResultadoRegistro(false, "Error al eliminar."));
+                callback.onComplete(new ResultadoRegistro(false, "Error al eliminar la venta."));
             }
         });
     }

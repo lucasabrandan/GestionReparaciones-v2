@@ -13,53 +13,32 @@ import java.util.List;
 @Dao
 public interface ReparacionDao {
 
-    /**
-     * Inserta una nueva reparación en la base de datos.
-     * @return el ID de la fila recién insertada.
-     */
     @Insert
     long insert(Reparacion reparacion);
 
-    /**
-     * Actualiza una reparación existente.
-     */
     @Update
     void update(Reparacion reparacion);
 
-    /**
-     * Elimina una reparación de la base de datos.
-     */
     @Delete
     void delete(Reparacion reparacion);
 
     /**
-     * Obtiene todas las reparaciones de un usuario específico, ordenadas por ID descendente.
-     * @param userId el ID del usuario.
-     * @return una lista de reparaciones.
+     * Obtiene todas las reparaciones de un usuario, ordenadas por fecha descendente.
      */
-    @Query("SELECT * FROM reparaciones WHERE user_id = :userId ORDER BY id DESC")
+    @Query("SELECT * FROM reparaciones WHERE userId = :userId ORDER BY id DESC")
     List<Reparacion> getAll(int userId);
 
     /**
-     * Busca reparaciones de un usuario cuya descripción, fecha o ID coincidan con la consulta.
-     * @param query la cadena de búsqueda.
-     * @param userId el ID del usuario.
-     * @return una lista de reparaciones que coinciden con la búsqueda.
+     * Busca reparaciones de un usuario cuya descripción coincida con la consulta.
      */
-    @Query("SELECT * FROM reparaciones WHERE user_id = :userId AND " +
-            "(descripcion LIKE '%' || :query || '%' OR " +
-            "fecha LIKE '%' || :query || '%' OR " +
-            "CAST(id AS TEXT) LIKE '%' || :query || '%') " +
+    @Query("SELECT * FROM reparaciones WHERE userId = :userId AND " +
+            "(descripcionProblema LIKE '%' || :query || '%' OR productoNombre LIKE '%' || :query || '%') " +
             "ORDER BY id DESC")
     List<Reparacion> buscar(String query, int userId);
 
     /**
      * Obtiene una reparación por su ID, asegurando que pertenezca al usuario en sesión.
-     * Es el método que usa el Repositorio para el modo de edición.
-     * @param id el ID de la reparación a buscar.
-     * @param userId el ID del usuario actual para verificar la propiedad.
-     * @return la reparación encontrada o null si no existe o no pertenece al usuario.
      */
-    @Query("SELECT * FROM reparaciones WHERE id = :id AND user_id = :userId")
-    Reparacion getReparacionById(int id, int userId); // <-- MÉTODO MODIFICADO Y CORREGIDO
+    @Query("SELECT * FROM reparaciones WHERE id = :id AND userId = :userId")
+    Reparacion getReparacionById(int id, int userId);
 }

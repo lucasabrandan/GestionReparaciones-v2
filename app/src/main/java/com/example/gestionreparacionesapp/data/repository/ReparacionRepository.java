@@ -1,193 +1,104 @@
 package com.example.gestionreparacionesapp.data.repository;
 
 import android.content.Context;
-import android.os.AsyncTask;
+import android.content.SharedPreferences;
 
 import com.example.gestionreparacionesapp.data.db.dao.ReparacionDao;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
-import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
-import com.example.gestionreparacionesapp.data.util.ResultadoRegistro; // Reusamos esta clase
-import com.example.gestionreparacionesapp.util.SessionManager;
+import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
+import com.example.gestionreparacionesapp.util.SessionManager; // Asegúrate de tener esta clase
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
-/**
- * Repositorio para la entidad Reparacion. Maneja la asincronía y el filtrado por usuario.
- */
 public class ReparacionRepository {
 
     private final ReparacionDao reparacionDao;
-    private final Context context;
+    private final ExecutorService executorService;
+    private final int userId;
+
+    // Interfaz de callback genérica para devolver resultados al ViewModel
+    public interface RepositorioCallback<T> {
+        void enExito(T resultado);
+    }
 
     public ReparacionRepository(ReparacionDao reparacionDao, Context context) {
         this.reparacionDao = reparacionDao;
-        this.context = context;
+        this.executorService = Executors.newSingleThreadExecutor();
+        // Obtenemos el userId desde tu SessionManager
+        this.userId = SessionManager.getUserId(context);
     }
 
-    // --- OBTENER TODAS (READ) ---
-    public void getAllReparaciones(RepositoryCallback<List<Reparacion>> callback) {
-        new GetAllReparacionesAsyncTask(reparacionDao, callback, context).execute();
+    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
+    public void obtenerTodasLasReparaciones(Consumer<List<Reparacion>> callback) {
+        executorService.execute(() -> {
+            List<Reparacion> reparaciones = reparacionDao.getAll(userId);
+            callback.accept(reparaciones);
+        });
     }
 
-    private static class GetAllReparacionesAsyncTask extends AsyncTask<Void, Void, List<Reparacion>> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<List<Reparacion>> callback;
-        private final int userId;
-
-        GetAllReparacionesAsyncTask(ReparacionDao dao, RepositoryCallback<List<Reparacion>> callback, Context context) {
-            this.asyncDao = dao; this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected List<Reparacion> doInBackground(Void... voids) {
-            if (userId == -1) return null;
-            return asyncDao.getAll(userId);
-        }
-        @Override
-        protected void onPostExecute(List<Reparacion> result) { if (callback != null) callback.onComplete(result); }
+    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
+    public void buscarReparacionesPorTermino(String query, Consumer<List<Reparacion>> callback) {
+        executorService.execute(() -> {
+            String searchQuery = (query == null || query.trim().isEmpty()) ? "" : query;
+            List<Reparacion> reparaciones = reparacionDao.buscar(searchQuery, userId);
+            callback.accept(reparaciones);
+        });
     }
 
-    // --- INSERTAR (CREATE) ---
-    public void insertReparacion(Reparacion reparacion, RepositoryCallback<ResultadoRegistro> callback) {
-        new InsertReparacionAsyncTask(reparacionDao, callback, context).execute(reparacion);
-    }
-
-    private static class InsertReparacionAsyncTask extends AsyncTask<Reparacion, Void, ResultadoRegistro> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        private final int userId;
-
-        InsertReparacionAsyncTask(ReparacionDao dao, RepositoryCallback<ResultadoRegistro> callback, Context context) {
-            this.asyncDao = dao; this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Reparacion... reparaciones) {
-            if (userId == -1) return new ResultadoRegistro(false, "Error de sesión");
-            reparaciones[0].setUserId(userId); // Asignamos al usuario
-
-            long id = asyncDao.insert(reparaciones[0]);
-            if (id > 0) {
-                return new ResultadoRegistro(true, "Reparación guardada");
-            } else {
-                return new ResultadoRegistro(false, "Error al guardar reparación");
-            }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) { if (callback != null) callback.onComplete(resultado); }
-    }
-
-    // --- ACTUALIZAR (UPDATE) ---
-    public void updateReparacion(Reparacion reparacion, RepositoryCallback<ResultadoRegistro> callback) {
-        new UpdateReparacionAsyncTask(reparacionDao, callback, context).execute(reparacion);
-    }
-
-    private static class UpdateReparacionAsyncTask extends AsyncTask<Reparacion, Void, ResultadoRegistro> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        private final int userId;
-
-        UpdateReparacionAsyncTask(ReparacionDao dao, RepositoryCallback<ResultadoRegistro> callback, Context context) {
-            this.asyncDao = dao; this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Reparacion... reparaciones) {
-            if (userId == -1) return new ResultadoRegistro(false, "Error de sesión");
-            reparaciones[0].setUserId(userId); // Aseguramos el userId
-
+    // --- ¡MÉTODO CON LA FIRMA QUE EL VIEWMODEL ESPERA! ---
+    public void insertarReparacion(int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado, Consumer<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
             try {
-                asyncDao.update(reparaciones[0]);
-                return new ResultadoRegistro(true, "Reparación actualizada");
+                if (descripcion.isEmpty() || productoNombre.isEmpty() || estado.isEmpty() || presupuestoStr.isEmpty()) {
+                    callback.accept(new ResultadoRegistro(false, "Todos los campos son obligatorios."));
+                    return;
+                }
+                double presupuesto = Double.parseDouble(presupuestoStr);
+                // Creamos el objeto Reparacion aquí
+                Reparacion nuevaReparacion = new Reparacion(userId, clienteId, productoNombre, descripcion, presupuesto, estado);
+                reparacionDao.insert(nuevaReparacion);
+                callback.accept(new ResultadoRegistro(true, "Reparación guardada con éxito."));
+            } catch (NumberFormatException e) {
+                callback.accept(new ResultadoRegistro(false, "El presupuesto debe ser un número válido."));
             } catch (Exception e) {
-                return new ResultadoRegistro(false, "Error al actualizar");
+                callback.accept(new ResultadoRegistro(false, "Error al guardar: " + e.getMessage()));
             }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) { if (callback != null) callback.onComplete(resultado); }
+        });
     }
 
-    // --- ELIMINAR (DELETE) ---
-    public void deleteReparacion(Reparacion reparacion, RepositoryCallback<ResultadoRegistro> callback) {
-        new DeleteReparacionAsyncTask(reparacionDao, callback).execute(reparacion);
-    }
-
-    private static class DeleteReparacionAsyncTask extends AsyncTask<Reparacion, Void, ResultadoRegistro> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        DeleteReparacionAsyncTask(ReparacionDao dao, RepositoryCallback<ResultadoRegistro> callback) {
-            this.asyncDao = dao; this.callback = callback;
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Reparacion... reparaciones) {
+    // --- ¡MÉTODO CON LA FIRMA QUE EL VIEWMODEL ESPERA! ---
+    public void actualizarReparacion(int reparacionId, int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado, Consumer<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
             try {
-                asyncDao.delete(reparaciones[0]);
-                return new ResultadoRegistro(true, "Reparación eliminada");
+                double presupuesto = Double.parseDouble(presupuestoStr);
+                Reparacion reparacionActualizada = new Reparacion(userId, clienteId, productoNombre, descripcion, presupuesto, estado);
+                reparacionActualizada.setId(reparacionId); // ¡Muy importante para actualizar!
+                reparacionDao.update(reparacionActualizada);
+                callback.accept(new ResultadoRegistro(true, "Reparación actualizada."));
             } catch (Exception e) {
-                return new ResultadoRegistro(false, "Error al eliminar");
+                callback.accept(new ResultadoRegistro(false, "Error al actualizar la reparación."));
             }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) { if (callback != null) callback.onComplete(resultado); }
+        });
     }
 
-    // --- BUSCAR (SEARCH) ---
-    public void buscarReparaciones(String query, RepositoryCallback<List<Reparacion>> callback) {
-        new BuscarReparacionesAsyncTask(reparacionDao, callback, context).execute(query);
-    }
-
-    private static class BuscarReparacionesAsyncTask extends AsyncTask<String, Void, List<Reparacion>> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<List<Reparacion>> callback;
-        private final int userId;
-
-        BuscarReparacionesAsyncTask(ReparacionDao dao, RepositoryCallback<List<Reparacion>> callback, Context context) {
-            this.asyncDao = dao; this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected List<Reparacion> doInBackground(String... queries) {
-            if (userId == -1) return null;
-            return asyncDao.buscar(queries[0], userId);
-        }
-        @Override
-        protected void onPostExecute(List<Reparacion> result) { if (callback != null) callback.onComplete(result); }
-    }
-
-    // --- OBTENER POR ID (NUEVO MÉTODO) ---
-    /**
-     * Obtiene una única reparación por su ID. Necesario para el modo de edición.
-     * @param reparacionId El ID de la reparación a buscar.
-     * @param callback El callback para devolver el resultado.
-     */
-    public void getReparacionById(int reparacionId, RepositoryCallback<Reparacion> callback) {
-        new GetReparacionByIdAsyncTask(reparacionDao, callback, context).execute(reparacionId);
-    }
-
-    private static class GetReparacionByIdAsyncTask extends AsyncTask<Integer, Void, Reparacion> {
-        private final ReparacionDao asyncDao;
-        private final RepositoryCallback<Reparacion> callback;
-        private final int userId;
-
-        GetReparacionByIdAsyncTask(ReparacionDao dao, RepositoryCallback<Reparacion> callback, Context context) {
-            this.asyncDao = dao;
-            this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-
-        @Override
-        protected Reparacion doInBackground(Integer... params) {
-            if (userId == -1 || params.length == 0) return null;
-            int reparacionId = params[0];
-            // Llamamos a un método en el DAO que debe buscar por ID y por userId para seguridad.
-            return asyncDao.getReparacionById(reparacionId, userId);
-        }
-
-        @Override
-        protected void onPostExecute(Reparacion result) {
-            if (callback != null) {
-                callback.onComplete(result);
+    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
+    public void eliminarReparacionPorId(int reparacionId, Consumer<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
+            try {
+                // Obtenemos la reparación para asegurarnos de que existe antes de borrarla
+                Reparacion reparacion = reparacionDao.getReparacionById(reparacionId, userId);
+                if (reparacion != null) {
+                    reparacionDao.delete(reparacion);
+                    callback.accept(new ResultadoRegistro(true, "Reparación eliminada."));
+                } else {
+                    callback.accept(new ResultadoRegistro(false, "Error: No se encontró la reparación."));
+                }
+            } catch (Exception e) {
+                callback.accept(new ResultadoRegistro(false, "Error al eliminar la reparación."));
             }
-        }
+        });
     }
 }

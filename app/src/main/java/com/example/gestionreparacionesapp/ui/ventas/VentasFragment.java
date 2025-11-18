@@ -1,6 +1,5 @@
 package com.example.gestionreparacionesapp.ui.ventas;
 
-// --- 1. IMPORTACIONES NECESARIAS (INCLUIDAS LAS NUEVAS) ---
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -8,6 +7,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,7 +16,6 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -29,7 +28,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -41,6 +39,10 @@ import com.example.gestionreparacionesapp.data.db.entity.Venta;
 import com.example.gestionreparacionesapp.ui.clientes.ClientesViewModel;
 import com.example.gestionreparacionesapp.ui.productos.ProductoViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -62,14 +64,10 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     private List<Cliente> listaClientesSpinner = new ArrayList<>();
     private List<Producto> listaProductosSpinner = new ArrayList<>();
 
-    // --- LANZADOR PARA GESTIONAR LA SOLICITUD DE PERMISO DE CÁMARA ---
     private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
-                    abrirCamara();
-                } else {
-                    Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
-                }
+                if (isGranted) abrirCamara();
+                else Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
             });
 
     public VentasFragment() {}
@@ -111,7 +109,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     }
 
     private void setupListeners() {
-        fabAgregarVenta.setOnClickListener(v -> mostrarDialogoVenta());
+        fabAgregarVenta.setOnClickListener(v -> mostrarDialogoVenta(null));
         etBuscadorVentas.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -123,14 +121,14 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
 
     @Override
     public void onVentaClick(Venta venta) {
-        Toast.makeText(getContext(), "Venta #" + venta.getId() + " seleccionada.", Toast.LENGTH_SHORT).show();
+        mostrarDialogoVenta(venta);
     }
 
     @Override
     public void onVentaLongClick(Venta venta) {
         new AlertDialog.Builder(requireContext())
                 .setTitle("Anular Venta")
-                .setMessage("Esta acción no se puede deshacer. ¿Deseas continuar?")
+                .setMessage("Esta acción no se puede deshacer. ¿Deseas anular la venta #" + venta.getId() + "?")
                 .setPositiveButton("Anular", (dialog, which) -> ventasViewModel.eliminarVenta(venta))
                 .setNegativeButton("Cancelar", null)
                 .show();
@@ -151,13 +149,9 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             }
         });
 
-        // ¡NUEVO OBSERVADOR! Para reaccionar a la creación de un nuevo cliente.
         clientesViewModel.getClienteCreadoConExito().observe(getViewLifecycleOwner(), exito -> {
             if (exito != null && exito) {
                 Toast.makeText(getContext(), "Lista de clientes actualizada.", Toast.LENGTH_SHORT).show();
-                // No es necesario refrescar manualmente el spinner aquí,
-                // el observador de 'getListaClientes' ya actualiza 'listaClientesSpinner',
-                // que será usada la próxima vez que se cree un adapter para el spinner.
             }
         });
 
@@ -170,12 +164,10 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         });
     }
 
-    private void mostrarDialogoVenta() {
+    private void mostrarDialogoVenta(@Nullable Venta venta) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nueva_venta, null);
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setView(dialogView)
-                .setTitle("Nueva Venta")
-                .create();
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext()).setView(dialogView);
+        AlertDialog dialog = builder.create();
 
         Spinner spinnerCliente = dialogView.findViewById(R.id.spinnerClienteVenta);
         Button btnNuevoCliente = dialogView.findViewById(R.id.btnNuevoClienteVentaDialog);
@@ -189,9 +181,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         final List<ProductoVenta> productosEnVenta = new ArrayList<>();
         final Cliente[] clienteSeleccionado = {null};
 
-        // Configurar Spinner de Clientes
-        refrescarSpinnerDeClientes(spinnerCliente, -1); // Carga inicial de datos
-
+        refrescarSpinnerDeClientes(spinnerCliente, -1);
         spinnerCliente.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -204,11 +194,36 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             @Override public void onNothingSelected(AdapterView<?> parent) {}
         });
 
-        btnAnadirProducto.setOnClickListener(v -> agregarViewProducto(containerProductos, productosEnVenta, tvTotal));
-        agregarViewProducto(containerProductos, productosEnVenta, tvTotal); // Añade la primera fila
-
+        btnAnadirProducto.setOnClickListener(v -> agregarViewProducto(containerProductos, productosEnVenta, tvTotal, null));
         btnNuevoCliente.setOnClickListener(v -> mostrarDialogoNuevoCliente(spinnerCliente));
         btnNuevoProducto.setOnClickListener(v -> mostrarDialogoNuevoProducto(containerProductos));
+
+        if (venta != null) {
+            builder.setTitle("Editar Venta #" + venta.getId());
+            btnGuardar.setText("Actualizar");
+
+            spinnerCliente.post(() -> {
+                for (int i = 0; i < listaClientesSpinner.size(); i++) {
+                    if (listaClientesSpinner.get(i).getId() == venta.getClienteId()) {
+                        spinnerCliente.setSelection(i + 1);
+                        break;
+                    }
+                }
+            });
+
+            List<ProductoVenta> productosGuardados = parsearProductosDesdeJson(venta.getProductosJson());
+            if (productosGuardados.isEmpty()) {
+                agregarViewProducto(containerProductos, productosEnVenta, tvTotal, null);
+            } else {
+                for (ProductoVenta pv : productosGuardados) {
+                    agregarViewProducto(containerProductos, productosEnVenta, tvTotal, pv);
+                }
+            }
+        } else {
+            builder.setTitle("Nueva Venta");
+            btnGuardar.setText("Guardar");
+            agregarViewProducto(containerProductos, productosEnVenta, tvTotal, null);
+        }
 
         btnGuardar.setOnClickListener(v -> {
             if (clienteSeleccionado[0] == null) {
@@ -220,14 +235,20 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                 Toast.makeText(getContext(), "Debes añadir al menos un producto.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            ventasViewModel.guardarVenta(clienteSeleccionado[0], productosEnVenta);
+
+            if (venta == null) {
+                ventasViewModel.guardarVenta(clienteSeleccionado[0], productosEnVenta);
+            } else {
+                ventasViewModel.actualizarVenta(venta.getId(), clienteSeleccionado[0], productosEnVenta);
+            }
             dialog.dismiss();
         });
+
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
     }
 
-    private void agregarViewProducto(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal) {
+    private void agregarViewProducto(LinearLayout container, List<ProductoVenta> productosLista, TextView tvTotal, @Nullable ProductoVenta productoExistente) {
         View productoView = getLayoutInflater().inflate(R.layout.item_producto_venta, container, false);
         Spinner spinnerProducto = productoView.findViewById(R.id.spinnerProducto);
         EditText etCantidad = productoView.findViewById(R.id.etCantidad);
@@ -244,6 +265,18 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         productoAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerProducto.setAdapter(productoAdapter);
 
+        if (productoExistente != null) {
+            etCantidad.setText(String.valueOf(productoExistente.getCantidad()));
+            spinnerProducto.post(() -> {
+                for (int i = 0; i < listaProductosSpinner.size(); i++) {
+                    if (listaProductosSpinner.get(i).getId() == productoExistente.getProducto().getId()) {
+                        spinnerProducto.setSelection(i + 1);
+                        break;
+                    }
+                }
+            });
+        }
+
         TextWatcher textWatcher = new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override public void onTextChanged(CharSequence s, int start, int before, int count) {
@@ -251,7 +284,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             }
             @Override public void afterTextChanged(Editable s) {}
         };
-
         etCantidad.addTextChangedListener(textWatcher);
         spinnerProducto.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
@@ -293,6 +325,36 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         tvTotal.setText(String.format(Locale.getDefault(), "TOTAL: $%.2f", total));
     }
 
+    private List<ProductoVenta> parsearProductosDesdeJson(String json) {
+        List<ProductoVenta> lista = new ArrayList<>();
+        if (json == null || json.isEmpty()) return lista;
+
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject obj = array.getJSONObject(i);
+                int productoId = obj.getInt("producto_id");
+                int cantidad = obj.getInt("cantidad");
+
+                Producto productoOriginal = null;
+                for (Producto p : listaProductosSpinner) {
+                    if (p.getId() == productoId) {
+                        productoOriginal = p;
+                        break;
+                    }
+                }
+                if (productoOriginal != null) {
+                    lista.add(new ProductoVenta(productoOriginal, cantidad));
+                }
+            }
+        } catch (JSONException e) {
+            Log.e("VentasFragment", "Error al parsear JSON de productos", e);
+        }
+        return lista;
+    }
+
+    // --- INICIO DE LA LÓGICA RESTAURADA ---
+
     private void mostrarDialogoNuevoCliente(Spinner spinnerClienteVenta) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -300,8 +362,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                 .setView(dialogView)
                 .create();
 
-        // --- ¡AQUÍ LA CORRECCIÓN! ---
-        // Se usan los IDs estandarizados que ahora existen en el archivo XML.
         EditText etDni = dialogView.findViewById(R.id.etDniClienteDialog);
         EditText etNombre = dialogView.findViewById(R.id.etNombreClienteDialog);
         Button btnGuardar = dialogView.findViewById(R.id.btnGuardarClienteDialog);
@@ -317,9 +377,23 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             clientesViewModel.guardarCliente(dni, nombre, "", "", "");
             dialog.dismiss();
 
-            // La lógica para refrescar el spinner se manejará de forma reactiva
-            // gracias al nuevo observador del SingleLiveEvent que añadimos en setupObservers().
-            // El código complejo de 'new Observer' que estaba aquí ya no es necesario.
+            // Observamos hasta que la lista se actualice y seleccionamos al nuevo cliente
+            clientesViewModel.getListaClientes().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<List<Cliente>>() {
+                @Override
+                public void onChanged(List<Cliente> clientes) {
+                    if (clientes.stream().anyMatch(c -> c.getDni().equals(dni))) {
+                        clientesViewModel.getListaClientes().removeObserver(this);
+                        int newClientIndex = -1;
+                        for (int i = 0; i < clientes.size(); i++) {
+                            if (clientes.get(i).getDni().equals(dni)) {
+                                newClientIndex = i + 1; // +1 por "Selecciona un cliente"
+                                break;
+                            }
+                        }
+                        refrescarSpinnerDeClientes(spinnerClienteVenta, newClientIndex);
+                    }
+                }
+            });
         });
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
@@ -332,7 +406,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                 .setView(dialogView)
                 .create();
 
-        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto);
         EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
         EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
         EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
@@ -340,16 +413,12 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
         Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
 
-        btnAnadirFoto.setOnClickListener(v -> comprobarPermisoYlanzarCamara());
-
         btnGuardar.setOnClickListener(v -> {
             String nombre = etNombre.getText().toString();
             if (nombre.isEmpty()) {
                 Toast.makeText(getContext(), "El nombre del producto es obligatorio.", Toast.LENGTH_SHORT).show();
                 return;
             }
-            // Asumiendo que existe un método 'guardarProducto' en ProductoViewModel
-            // que se encarga de todo, incluyendo un SingleLiveEvent para productos.
             productoViewModel.insertarProducto(
                     etSku.getText().toString(),
                     nombre,
@@ -359,7 +428,17 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             );
             dialog.dismiss();
 
-            // Aquí también, la lógica reactiva con un SingleLiveEvent en ProductoViewModel es la mejor opción.
+            // Observamos hasta que la lista de productos se actualice
+            productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<List<Producto>>() {
+                @Override
+                public void onChanged(List<Producto> productos) {
+                    if (productos.stream().anyMatch(p -> p.getNombre().equals(nombre))) {
+                        productoViewModel.getListaProductos().removeObserver(this);
+                        Toast.makeText(getContext(), "Producto guardado. Actualizando listas...", Toast.LENGTH_SHORT).show();
+                        refrescarSpinnersDeProductos(containerProductosVenta);
+                    }
+                }
+            });
         });
         btnCancelar.setOnClickListener(v -> dialog.dismiss());
         dialog.show();
@@ -405,6 +484,8 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         }
     }
 
+    // --- FIN DE LA LÓGICA RESTAURADA ---
+
     private void comprobarPermisoYlanzarCamara() {
         if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             abrirCamara();
@@ -415,6 +496,7 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
 
     private void abrirCamara() {
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Esta línea necesita el launcher de resultado para procesar la imagen, pero se omite por simplicidad
         startActivity(cameraIntent);
     }
 }

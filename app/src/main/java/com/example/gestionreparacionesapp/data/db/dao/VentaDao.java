@@ -20,7 +20,9 @@ public interface VentaDao {
     @Delete
     void delete(Venta venta);
 
-    // CAMBIO: Filtrado por Usuario
+    // --- ¡AQUÍ ESTÁ LA CORRECCIÓN PRINCIPAL! ---
+    // La consulta (@Query) ahora filtra por 'userId'.
+    // El método ahora acepta un parámetro 'int userId' para que coincida con la consulta.
     @Query("SELECT * FROM ventas WHERE userId = :userId ORDER BY id DESC")
     List<Venta> getAll(int userId);
 

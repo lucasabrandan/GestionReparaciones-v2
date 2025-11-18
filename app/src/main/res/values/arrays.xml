@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="estados_reparacion">
+        <item>Pendiente</item>
+        <item>En Proceso</item>
+        <item>En Espera de Piezas</item>
+        <item>Finalizado</item>
+        <item>Entregado</item>
+        <item>Cancelado</item>
+    </string-array>
+</resources>

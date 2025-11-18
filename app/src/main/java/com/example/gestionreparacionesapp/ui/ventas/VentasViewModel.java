@@ -12,11 +12,11 @@ import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
 import com.example.gestionreparacionesapp.data.repository.VentaRepository;
-// El callback ahora viene de un paquete diferente si lo has creado. Asumimos una estructura simple.
 import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.text.SimpleDateFormat;
@@ -36,8 +36,6 @@ public class VentasViewModel extends AndroidViewModel {
 
     public VentasViewModel(@NonNull Application application) {
         super(application);
-        // La inicialización del repositorio sigue siendo la misma,
-        // pero ahora este repositorio es mucho más eficiente por dentro.
         this.repository = new VentaRepository(
                 AppDatabase.getInstance(application).ventaDao(),
                 application
@@ -45,7 +43,6 @@ public class VentasViewModel extends AndroidViewModel {
     }
 
     public void cargarVentas() {
-        // La llamada no cambia, pero ahora usa la implementación moderna.
         repository.getAllVentas(result -> listaVentas.postValue(result));
     }
 
@@ -57,9 +54,6 @@ public class VentasViewModel extends AndroidViewModel {
         }
     }
 
-    /**
-     * Guarda una nueva venta y le pide al repositorio que descuente el stock.
-     */
     public void guardarVenta(Cliente clienteSeleccionado, List<ProductoVenta> productos) {
         if (clienteSeleccionado == null) {
             operationResult.setValue(new ResultadoRegistro(false, "Debe seleccionar un cliente"));
@@ -70,31 +64,27 @@ public class VentasViewModel extends AndroidViewModel {
             return;
         }
 
-        double subtotal = 0;
+        double total = 0;
         for (ProductoVenta pv : productos) {
-            subtotal += pv.getSubtotal();
+            total += pv.getSubtotal();
         }
-        double total = subtotal;
 
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        Venta venta = new Venta(0, clienteSeleccionado.getId(), fecha, subtotal, total, productosJson);
+        // Asumiendo que el constructor de Venta es (userId, clienteId, fecha, subtotal, total, productosJson)
+        Venta venta = new Venta(0, clienteSeleccionado.getId(), fecha, total, total, productosJson);
 
-        // --- CAMBIO CLAVE AQUÍ ---
-        // Ahora pasamos la lista de 'productos' para que el repositorio pueda descontar el stock.
+        // La lógica para descontar stock debe estar en el repositorio
         repository.insertVenta(venta, productos, result -> {
             operationResult.postValue(result);
             if (result.isSuccess) {
-                cargarVentas(); // Recarga la lista de ventas para mostrar la nueva
+                cargarVentas();
             }
         });
     }
 
-    /**
-     * Actualiza una venta existente.
-     * NOTA: La lógica para RE-AJUSTAR el stock al editar no está implementada.
-     */
+    // --- ¡AQUÍ EL MÉTODO NUEVO PARA ACTUALIZAR! ---
     public void actualizarVenta(int ventaId, Cliente clienteSeleccionado, List<ProductoVenta> productos) {
         if (clienteSeleccionado == null) {
             operationResult.setValue(new ResultadoRegistro(false, "Debe seleccionar un cliente"));
@@ -105,17 +95,16 @@ public class VentasViewModel extends AndroidViewModel {
             return;
         }
 
-        double subtotal = 0;
+        double total = 0;
         for (ProductoVenta pv : productos) {
-            subtotal += pv.getSubtotal();
+            total += pv.getSubtotal();
         }
-        double total = subtotal;
 
         String productosJson = convertirProductosAJson(productos);
         String fecha = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
 
-        Venta venta = new Venta(0, clienteSeleccionado.getId(), fecha, subtotal, total, productosJson);
-        venta.setId(ventaId);
+        Venta venta = new Venta(0, clienteSeleccionado.getId(), fecha, total, total, productosJson);
+        venta.setId(ventaId); // ¡MUY IMPORTANTE! Esto le indica a Room qué registro actualizar.
 
         repository.updateVenta(venta, result -> {
             operationResult.postValue(result);
@@ -124,7 +113,6 @@ public class VentasViewModel extends AndroidViewModel {
     }
 
     public void eliminarVenta(Venta venta) {
-        // Eliminar una venta NO restaura el stock por defecto.
         repository.deleteVenta(venta, result -> {
             operationResult.postValue(result);
             if (result.isSuccess) cargarVentas();
@@ -136,9 +124,10 @@ public class VentasViewModel extends AndroidViewModel {
         try {
             for (ProductoVenta pv : productos) {
                 JSONObject productoJson = new JSONObject();
+                productoJson.put("producto_id", pv.getProducto().getId()); // Guardamos el ID para la reconstrucción
                 productoJson.put("nombre", pv.getProducto().getNombre());
                 productoJson.put("precio", pv.getProducto().getPrecio());
-                productoJson.put("cantidad", pv.getCantidad()); // La cantidad vendida
+                productoJson.put("cantidad", pv.getCantidad());
                 array.put(productoJson);
             }
         } catch (Exception e) {
