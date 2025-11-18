@@ -1,0 +1,19 @@
+Index: app/src/main/java/com/example/gestionreparacionesapp/data/db/AppDatabase.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.example.gestionreparacionesapp.data.db;\r\n\r\nimport android.content.Context;\r\nimport androidx.room.Database;\r\nimport androidx.room.Room;\r\nimport androidx.room.RoomDatabase;\r\n\r\nimport com.example.gestionreparacionesapp.data.db.dao.ClienteDao;\r\nimport com.example.gestionreparacionesapp.data.db.dao.ProductoDao;\r\nimport com.example.gestionreparacionesapp.data.db.dao.ReparacionDao;\r\nimport com.example.gestionreparacionesapp.data.db.dao.UsuarioDao;\r\nimport com.example.gestionreparacionesapp.data.db.dao.VentaDao;\r\nimport com.example.gestionreparacionesapp.data.db.entity.Cliente;\r\nimport com.example.gestionreparacionesapp.data.db.entity.Producto;\r\nimport com.example.gestionreparacionesapp.data.db.entity.Reparacion;\r\nimport com.example.gestionreparacionesapp.data.db.entity.Usuario;\r\nimport com.example.gestionreparacionesapp.data.db.entity.Venta;\r\n\r\n\r\n@Database(entities = {\r\n        Usuario.class,\r\n        Cliente.class,\r\n        Producto.class,\r\n        Venta.class,\r\n        Reparacion.class\r\n}, version = 15, exportSchema = false) // <--- ¡VERSIÓN INCREMENTADA A 15!\r\npublic abstract class AppDatabase extends RoomDatabase {\r\n\r\n    public abstract UsuarioDao usuarioDao();\r\n    public abstract ClienteDao clienteDao();\r\n    public abstract ProductoDao productoDao();\r\n    public abstract VentaDao ventaDao();\r\n    public abstract ReparacionDao reparacionDao();\r\n\r\n    private static volatile AppDatabase INSTANCE;\r\n    private static final String DATABASE_NAME = \"gestion_reparaciones_db\";\r\n\r\n    public static AppDatabase getInstance(final Context context) {\r\n        if (INSTANCE == null) {\r\n            synchronized (AppDatabase.class) {\r\n                if (INSTANCE == null) {\r\n                    INSTANCE = Room.databaseBuilder(context.getApplicationContext(),\r\n                                    AppDatabase.class, DATABASE_NAME)\r\n                            .allowMainThreadQueries()\r\n                            // Borrará la DB v14 y creará la v15\r\n                            .fallbackToDestructiveMigration()\r\n                            .build();\r\n                }\r\n            }\r\n        }\r\n        return INSTANCE;\r\n    }\r\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/example/gestionreparacionesapp/data/db/AppDatabase.java b/app/src/main/java/com/example/gestionreparacionesapp/data/db/AppDatabase.java
+--- a/app/src/main/java/com/example/gestionreparacionesapp/data/db/AppDatabase.java	(revision a9ee69b5246f0bf31712852cee5be7f736e05003)
++++ b/app/src/main/java/com/example/gestionreparacionesapp/data/db/AppDatabase.java	(date 1763440049773)
+@@ -23,7 +23,7 @@
+         Producto.class,
+         Venta.class,
+         Reparacion.class
+-}, version = 15, exportSchema = false) // <--- ¡VERSIÓN INCREMENTADA A 15!
++}, version = 16, exportSchema = false) // <--- ¡VERSIÓN INCREMENTADA A 15!
+ public abstract class AppDatabase extends RoomDatabase {
+ 
+     public abstract UsuarioDao usuarioDao();
