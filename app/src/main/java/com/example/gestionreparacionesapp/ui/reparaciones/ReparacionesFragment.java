@@ -10,6 +10,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -326,7 +327,11 @@ public class ReparacionesFragment extends Fragment implements ReparacionesAdapte
 
         Spinner spinnerProducto = productoView.findViewById(R.id.spinnerProducto);
         EditText etCantidad = productoView.findViewById(R.id.etCantidad);
-        Button btnEliminar = productoView.findViewById(R.id.btnEliminar);
+
+        // --- CORRECCIÓN AQUÍ ---
+        // Se cambió el tipo a ImageButton y se usó el ID correcto.
+        ImageButton btnEliminar = productoView.findViewById(R.id.btnEliminarProductoVenta);
+
 
         // Configurar spinner de productos
         List<String> nombresProductos = listaProductosSpinner.stream()

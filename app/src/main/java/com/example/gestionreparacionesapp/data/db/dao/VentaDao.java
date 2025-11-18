@@ -33,4 +33,14 @@ public interface VentaDao {
 
     @Query("SELECT * FROM ventas WHERE fecha = :fecha AND userId = :userId ORDER BY id DESC")
     List<Venta> getByFecha(String fecha, int userId);
+
+    /**
+     * Busca ventas por nombre de cliente o fecha, filtrando por usuario.
+     */
+    @Query("SELECT v.* FROM ventas v " +
+            "INNER JOIN clientes c ON v.clienteId = c.id " +
+            "WHERE v.userId = :userId AND (c.nombre LIKE '%' || :query || '%' OR v.fecha LIKE '%' || :query || '%') " +
+            "ORDER BY v.fecha DESC")
+    List<Venta> buscar(String query, int userId);
+
 }
