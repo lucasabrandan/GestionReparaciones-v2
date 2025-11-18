@@ -10,11 +10,11 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
-import com.example.gestionreparacionesapp.data.db.entity.Producto;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
 import com.example.gestionreparacionesapp.data.repository.ReparacionRepository;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
-import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta; // Reutilizamos la clase de Ventas
+import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta;
+
 
 import org.json.JSONArray;
 import org.json.JSONObject;

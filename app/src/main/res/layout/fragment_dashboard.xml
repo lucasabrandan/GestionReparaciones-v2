@@ -13,7 +13,7 @@
     android:fitsSystemWindows="true"
     tools:context=".ui.home.DashboardFragment">
 
-    <!-- MEJORA 1: Logo añadido para coherencia de marca -->
+    <!-- Logo (Restaurado según tu preferencia anterior) -->
     <ImageView
         android:id="@+id/ivLogoDashboard"
         android:layout_width="80dp"
@@ -30,7 +30,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center_horizontal"
         android:layout_marginTop="16dp"
-        android:layout_marginBottom="24dp"
+        android:layout_marginBottom="40dp"
         android:textAppearance="?attr/textAppearanceTitleLarge"
         android:textColor="?attr/colorPrimary"
         tools:text="¡Bienvenido, Esteban Martínez!" />
@@ -42,7 +42,13 @@
         android:orientation="vertical"
         android:gravity="center_horizontal">
 
-        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
+        <!--
+            TRUCO DE DISEÑO:
+            app:iconGravity="textStart" -> Pega el icono al texto y centra el grupo.
+            app:iconPadding="8dp" -> Da un pequeño respiro entre icono y texto.
+        -->
+
+        <!-- Botón 1: Ventas -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnVentas"
             android:layout_width="match_parent"
@@ -52,11 +58,14 @@
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             app:icon="@drawable/ic_ventas"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
             app:backgroundTint="@color/blue_button"
-            android:textColor="@color/background"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
+        <!-- Botón 2: Reparaciones -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnReparaciones"
             android:layout_width="match_parent"
@@ -66,11 +75,14 @@
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             app:icon="@drawable/ic_reparaciones"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
             app:backgroundTint="@color/blue_button"
-            android:textColor="@color/background"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
+        <!-- Botón 3: Clientes -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnClientes"
             android:layout_width="match_parent"
@@ -80,11 +92,14 @@
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             app:icon="@drawable/ic_clientes"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
             app:backgroundTint="@color/blue_button"
-            android:textColor="@color/background"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             style="@style/Widget.Material3.Button"/>
 
-        <!-- MEJORA 2 y 3: Icono y Color de Marca (Secundario) -->
+        <!-- Botón 4: Productos -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnProductos"
             android:layout_width="match_parent"
@@ -93,8 +108,11 @@
             android:paddingVertical="12dp"
             android:textAppearance="?attr/textAppearanceTitleMedium"
             app:icon="@drawable/ic_productos"
+            app:iconGravity="textStart"
+            app:iconPadding="12dp"
             app:backgroundTint="@color/blue_button"
-            android:textColor="@color/background"
+            android:textColor="?attr/colorOnPrimary"
+            app:iconTint="?attr/colorOnPrimary"
             style="@style/Widget.Material3.Button"/>
 
     </LinearLayout>
