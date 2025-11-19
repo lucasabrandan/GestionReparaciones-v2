@@ -1,12 +1,11 @@
+// REEMPLAZA TODO EL ARCHIVO CON ESTE CÓDIGO
 package com.example.gestionreparacionesapp.data.repository;
 
 import android.content.Context;
-import android.content.SharedPreferences;
-
 import com.example.gestionreparacionesapp.data.db.dao.ReparacionDao;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
-import com.example.gestionreparacionesapp.util.SessionManager; // Asegúrate de tener esta clase
+import com.example.gestionreparacionesapp.util.SessionManager;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -19,19 +18,12 @@ public class ReparacionRepository {
     private final ExecutorService executorService;
     private final int userId;
 
-    // Interfaz de callback genérica para devolver resultados al ViewModel
-    public interface RepositorioCallback<T> {
-        void enExito(T resultado);
-    }
-
     public ReparacionRepository(ReparacionDao reparacionDao, Context context) {
         this.reparacionDao = reparacionDao;
         this.executorService = Executors.newSingleThreadExecutor();
-        // Obtenemos el userId desde tu SessionManager
         this.userId = SessionManager.getUserId(context);
     }
 
-    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
     public void obtenerTodasLasReparaciones(Consumer<List<Reparacion>> callback) {
         executorService.execute(() -> {
             List<Reparacion> reparaciones = reparacionDao.getAll(userId);
@@ -39,7 +31,6 @@ public class ReparacionRepository {
         });
     }
 
-    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
     public void buscarReparacionesPorTermino(String query, Consumer<List<Reparacion>> callback) {
         executorService.execute(() -> {
             String searchQuery = (query == null || query.trim().isEmpty()) ? "" : query;
@@ -48,47 +39,52 @@ public class ReparacionRepository {
         });
     }
 
-    // --- ¡MÉTODO CON LA FIRMA QUE EL VIEWMODEL ESPERA! ---
-    public void insertarReparacion(int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado, Consumer<ResultadoRegistro> callback) {
+    // --- MÉTODO INSERTAR CORREGIDO ---
+    public void insertarReparacion(int clienteId, String marca, String modelo, String serie, String descripcion, String repuestos, String costoRepuestosStr, String costoManoObraStr, String estado, Consumer<ResultadoRegistro> callback) {
         executorService.execute(() -> {
             try {
-                if (descripcion.isEmpty() || productoNombre.isEmpty() || estado.isEmpty() || presupuestoStr.isEmpty()) {
-                    callback.accept(new ResultadoRegistro(false, "Todos los campos son obligatorios."));
+                if (marca.isEmpty() || modelo.isEmpty() || descripcion.isEmpty() || estado.isEmpty()) {
+                    callback.accept(new ResultadoRegistro(false, "Los campos principales son obligatorios."));
                     return;
                 }
-                double presupuesto = Double.parseDouble(presupuestoStr);
-                // Creamos el objeto Reparacion aquí
-                Reparacion nuevaReparacion = new Reparacion(userId, clienteId, productoNombre, descripcion, presupuesto, estado);
+                // Convertimos los costos, si están vacíos los tratamos como 0
+                double costoRepuestos = costoRepuestosStr.isEmpty() ? 0.0 : Double.parseDouble(costoRepuestosStr);
+                double costoManoObra = costoManoObraStr.isEmpty() ? 0.0 : Double.parseDouble(costoManoObraStr);
+
+                // Creamos el objeto Reparacion con el NUEVO constructor
+                Reparacion nuevaReparacion = new Reparacion(userId, clienteId, marca, modelo, serie, descripcion, repuestos, costoRepuestos, costoManoObra, estado);
                 reparacionDao.insert(nuevaReparacion);
                 callback.accept(new ResultadoRegistro(true, "Reparación guardada con éxito."));
+
             } catch (NumberFormatException e) {
-                callback.accept(new ResultadoRegistro(false, "El presupuesto debe ser un número válido."));
+                callback.accept(new ResultadoRegistro(false, "Los costos deben ser números válidos."));
             } catch (Exception e) {
                 callback.accept(new ResultadoRegistro(false, "Error al guardar: " + e.getMessage()));
             }
         });
     }
 
-    // --- ¡MÉTODO CON LA FIRMA QUE EL VIEWMODEL ESPERA! ---
-    public void actualizarReparacion(int reparacionId, int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado, Consumer<ResultadoRegistro> callback) {
+    // --- MÉTODO ACTUALIZAR CORREGIDO ---
+    public void actualizarReparacion(int reparacionId, int clienteId, String marca, String modelo, String serie, String descripcion, String repuestos, String costoRepuestosStr, String costoManoObraStr, String estado, Consumer<ResultadoRegistro> callback) {
         executorService.execute(() -> {
             try {
-                double presupuesto = Double.parseDouble(presupuestoStr);
-                Reparacion reparacionActualizada = new Reparacion(userId, clienteId, productoNombre, descripcion, presupuesto, estado);
+                double costoRepuestos = costoRepuestosStr.isEmpty() ? 0.0 : Double.parseDouble(costoRepuestosStr);
+                double costoManoObra = costoManoObraStr.isEmpty() ? 0.0 : Double.parseDouble(costoManoObraStr);
+
+                Reparacion reparacionActualizada = new Reparacion(userId, clienteId, marca, modelo, serie, descripcion, repuestos, costoRepuestos, costoManoObra, estado);
                 reparacionActualizada.setId(reparacionId); // ¡Muy importante para actualizar!
                 reparacionDao.update(reparacionActualizada);
                 callback.accept(new ResultadoRegistro(true, "Reparación actualizada."));
+
             } catch (Exception e) {
                 callback.accept(new ResultadoRegistro(false, "Error al actualizar la reparación."));
             }
         });
     }
 
-    // --- ¡MÉTODO CON EL NOMBRE QUE EL VIEWMODEL ESPERA! ---
     public void eliminarReparacionPorId(int reparacionId, Consumer<ResultadoRegistro> callback) {
         executorService.execute(() -> {
             try {
-                // Obtenemos la reparación para asegurarnos de que existe antes de borrarla
                 Reparacion reparacion = reparacionDao.getReparacionById(reparacionId, userId);
                 if (reparacion != null) {
                     reparacionDao.delete(reparacion);

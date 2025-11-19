@@ -1,3 +1,4 @@
+// REEMPLAZA TODO EL ARCHIVO CON ESTE CÓDIGO
 package com.example.gestionreparacionesapp.ui.reparaciones;
 
 import android.app.Application;
@@ -6,11 +7,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
-// --- ¡IMPORTS NECESARIOS! ---
 import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.dao.ReparacionDao;
-// ---
-
 import com.example.gestionreparacionesapp.data.repository.ReparacionRepository;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
@@ -25,9 +23,6 @@ public class ReparacionesViewModel extends AndroidViewModel {
 
     public ReparacionesViewModel(@NonNull Application application) {
         super(application);
-
-        // --- CORRECCIÓN FINAL AQUÍ ---
-        // Se instancia el DAO y se pasa al constructor del Repositorio como es requerido.
         ReparacionDao reparacionDao = AppDatabase.getInstance(application).reparacionDao();
         repository = new ReparacionRepository(reparacionDao, application);
     }
@@ -36,7 +31,6 @@ public class ReparacionesViewModel extends AndroidViewModel {
     public LiveData<ResultadoRegistro> getResultadoOperacion() { return resultadoOperacion; }
 
     public void cargarReparaciones() {
-        // Llamamos al método del repositorio que usa un callback.
         repository.obtenerTodasLasReparaciones(listaReparaciones::postValue);
     }
 
@@ -44,16 +38,17 @@ public class ReparacionesViewModel extends AndroidViewModel {
         repository.buscarReparacionesPorTermino(query, listaReparaciones::postValue);
     }
 
-    public void insertarReparacion(int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado) {
-        // La lógica de crear el objeto está en el Repositorio, el ViewModel solo pasa los datos.
-        repository.insertarReparacion(clienteId, productoNombre, descripcion, presupuestoStr, estado, result -> {
+    // --- MÉTODO INSERTAR MODIFICADO ---
+    public void insertarReparacion(int clienteId, String marca, String modelo, String serie, String descripcion, String repuestos, String costoRepuestosStr, String costoManoObraStr, String estado) {
+        repository.insertarReparacion(clienteId, marca, modelo, serie, descripcion, repuestos, costoRepuestosStr, costoManoObraStr, estado, result -> {
             resultadoOperacion.postValue(result);
             if (result.isSuccess) cargarReparaciones();
         });
     }
 
-    public void actualizarReparacion(int reparacionId, int clienteId, String productoNombre, String descripcion, String presupuestoStr, String estado) {
-        repository.actualizarReparacion(reparacionId, clienteId, productoNombre, descripcion, presupuestoStr, estado, result -> {
+    // --- MÉTODO ACTUALIZAR MODIFICADO ---
+    public void actualizarReparacion(int reparacionId, int clienteId, String marca, String modelo, String serie, String descripcion, String repuestos, String costoRepuestosStr, String costoManoObraStr, String estado) {
+        repository.actualizarReparacion(reparacionId, clienteId, marca, modelo, serie, descripcion, repuestos, costoRepuestosStr, costoManoObraStr, estado, result -> {
             resultadoOperacion.postValue(result);
             if (result.isSuccess) cargarReparaciones();
         });

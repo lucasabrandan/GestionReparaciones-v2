@@ -32,9 +32,11 @@ public interface ReparacionDao {
      * Busca reparaciones de un usuario cuya descripción coincida con la consulta.
      */
     @Query("SELECT * FROM reparaciones WHERE userId = :userId AND " +
-            "(descripcionProblema LIKE '%' || :query || '%' OR productoNombre LIKE '%' || :query || '%') " +
+            "(descripcionProblema LIKE '%' || :query || '%' OR " +
+            "equipoModelo LIKE '%' || :query || '%') " +
             "ORDER BY id DESC")
     List<Reparacion> buscar(String query, int userId);
+
 
     /**
      * Obtiene una reparación por su ID, asegurando que pertenezca al usuario en sesión.

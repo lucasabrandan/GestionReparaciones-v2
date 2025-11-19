@@ -1,86 +1,77 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="4dp"
-    app:cardElevation="2dp">
+    android:layout_marginVertical="4dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Nombre del Cliente (ID: tvCliente) -->
+        <!-- Campo para Marca y Modelo del Equipo -->
+        <TextView
+            android:id="@+id/tvEquipo"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Dispenser Marca Modelo"
+            android:textAppearance="@style/TextAppearance.Material3.TitleMedium"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tvEstado"/>
+
+        <!-- Campo para el Cliente -->
         <TextView
             android:id="@+id/tvCliente"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textStyle="bold"
+            android:layout_marginTop="4dp"
+            android:text="Nombre del Cliente"
+            android:textAppearance="@style/TextAppearance.Material3.BodySmall"
+            android:textColor="?attr/colorSecondary"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:text="Nombre del Cliente" />
+            app:layout_constraintTop_toBottomOf="@id/tvEquipo" />
 
-        <!-- Nombre del Producto (ID: tvProducto) -->
-        <TextView
-            android:id="@+id/tvProducto"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textAppearance="?attr/textAppearanceBodyLarge"
-            android:textStyle="italic"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvCliente"
-            tools:text="Producto: Laptop XYZ" />
-
-        <!-- Descripción del Problema (ID: tvDescripcion) -->
+        <!-- Campo para la Descripción del Problema -->
         <TextView
             android:id="@+id/tvDescripcion"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:maxLines="2"
-            android:ellipsize="end"
+            android:layout_marginTop="12dp"
+            android:text="Descripción del problema que tiene el equipo."
+            android:textAppearance="@style/TextAppearance.Material3.BodyMedium"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvProducto"
-            tools:text="La pantalla no enciende y hace un ruido extraño al intentar arrancar." />
+            app:layout_constraintTop_toBottomOf="@id/tvCliente" />
 
-        <!-- Estado de la Reparación (ID: tvEstado) -->
+        <!-- Campo para el Presupuesto Total -->
+        <TextView
+            android:id="@+id/tvPresupuesto"
+            android:layout_width="wrap_content"
+            android_layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="$1500.00"
+            android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvDescripcion" />
+
+        <!-- Campo para el Estado -->
         <TextView
             android:id="@+id/tvEstado"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:textAppearance="?attr/textAppearanceBodyMedium"
-            android:background="@drawable/rounded_corner_bg"
+            android:background="@drawable/background_estado_pendiente"
             android:paddingHorizontal="8dp"
-            android:paddingVertical="2dp"
-            android:textColor="@android:color/white"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tvDescripcion"
-            tools:text="Estado: En Proceso"
-            tools:backgroundTint="@android:color/holo_blue_dark"/>
-
-        <!-- Presupuesto (ID: tvPresupuesto) -->
-        <TextView
-            android:id="@+id/tvPresupuesto"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorPrimary"
-            android:textStyle="bold"
+            android:paddingVertical="4dp"
+            android:text="Pendiente"
+            android:textColor="@color/white"
+            android:textSize="12sp"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintBottom_toBottomOf="@id/tvEstado"
-            app:layout_constraintTop_toTopOf="@id/tvEstado"
-            tools:text="$250.00" />
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBaseline_toBaselineOf="@id/tvEquipo"/>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 </com.google.android.material.card.MaterialCardView>
