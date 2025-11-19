@@ -2,12 +2,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ... tus permisos ... -->
+    <!-- =============================================================== -->
+    <!--                  PERMISOS Y FEATURES DE LA APP                  -->
+    <!-- =============================================================== -->
 
+    <!-- Declara que la app puede querer usar la cámara, pero no es obligatoria -->
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
+
+    <!-- Solicita el permiso para poder usar la cámara -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+
+    <!-- =============================================================== -->
+    <!--                  DEFINICIÓN PRINCIPAL DE LA APP                 -->
+    <!-- =============================================================== -->
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -19,7 +29,12 @@
         android:theme="@style/Theme.GestionReparacionesApp"
         tools:targetApi="31">
 
-        <!-- PUNTO DE ENTRADA CORRECTO: EL LOGIN -->
+
+        <!-- =============================================================== -->
+        <!--                      ACTIVITIES DE LA APP                       -->
+        <!-- =============================================================== -->
+
+        <!-- PUNTO DE ENTRADA: PANTALLA DE LOGIN -->
         <activity
             android:name=".ui.login.LoginActivity"
             android:exported="true"
@@ -31,21 +46,33 @@
             </intent-filter>
         </activity>
 
-        <!-- ACTIVIDAD SECUNDARIA: EL HOME -->
+        <!-- PANTALLA PRINCIPAL CON LA NAVEGACIÓN -->
         <activity
             android:name=".ui.home.HomeActivity"
             android:exported="false"
             android:theme="@style/Theme.GestionReparacionesApp.NoActionBar"
             android:screenOrientation="portrait" />
 
-        <!-- =============================================================== -->
-        <!--      AQUÍ LA SOLUCIÓN: AÑADIR LA ACTIVIDAD DE REGISTRO          -->
-        <!-- =============================================================== -->
+        <!-- PANTALLA DE REGISTRO DE NUEVOS USUARIOS -->
         <activity
             android:name=".ui.registro.RegistroActivity"
             android:exported="false"
             android:theme="@style/Theme.GestionReparacionesApp.NoActionBar"
             android:screenOrientation="portrait" />
+
+
+        <!-- =============================================================== -->
+        <!--      PROVIDER PARA COMPARTIR URIs DE FORMA SEGURA (CÁMARA)      -->
+        <!-- =============================================================== -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

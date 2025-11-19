@@ -1,46 +1,42 @@
 [versions]
-agp = "8.12.3"
+
+agp = "8.5.1"
+coreKtx = "1.13.1"
+fragment = "1.8.2"
+activity = "1.9.0"
+appcompat = "1.7.0"
+material = "1.12.0"
+constraintlayout = "2.1.4"
+lifecycle = "2.8.3"
+navigation = "2.7.7"
+room = "2.6.1"
+retrofit = "2.11.0"
 junit = "4.13.2"
-junitVersion = "1.3.0"
-espressoCore = "3.7.0"
-appcompat = "1.7.1"
-material = "1.13.0"
-activity = "1.11.0"
-constraintlayout = "2.2.1"
-lifecycle = "2.9.4"
-room = "2.8.3"
-navigation = "2.9.6"
-retrofit = "3.0.0"
-playServicesCastFramework = "22.2.0"
+junitVersion = "1.2.1"
+espressoCore = "3.6.1"
+playServicesCastFramework = "21.4.0"
 
 [libraries]
+# --- DEFINICIONES DE LIBRERÍAS (INCLUYENDO LAS QUE FALTABAN) ---
+core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+fragment = { group = "androidx.fragment", name = "fragment-ktx", version.ref = "fragment" }
+activity = { group = "androidx.activity", name = "activity-ktx", version.ref = "activity" }
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycle" }
+lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "lifecycle" }
+lifecycle-compiler = { module = "androidx.lifecycle:lifecycle-compiler", version.ref = "lifecycle" }
+room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
+room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
+navigation-fragment = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "navigation" }
+navigation-ui = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "navigation" }
+retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
+retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
-# --- LIBRERÍAS REQUERIDAS POR EL TP ---
-
-# 1. MVVM (ViewModel, LiveData) - (Para Java)
-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmodel", version.ref = "lifecycle" }
-lifecycle-livedata = { module = "androidx.lifecycle:lifecycle-livedata", version.ref = "lifecycle" }
-lifecycle-compiler = { module = "androidx.lifecycle:lifecycle-compiler", version.ref = "lifecycle" }
-
-# 2. Base de Datos (Room)
-room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
-room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
-
-# 3. Navigation Component (Para Java)
-navigation-fragment = { module = "androidx.navigation:navigation-fragment", version.ref = "navigation" }
-navigation-ui = { module = "androidx.navigation:navigation-ui", version.ref = "navigation" }
-
-# 4. API Client (Retrofit)
-retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
-retrofit-converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "retrofit" }
 play-services-cast-framework = { group = "com.google.android.gms", name = "play-services-cast-framework", version.ref = "playServicesCastFramework" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
-

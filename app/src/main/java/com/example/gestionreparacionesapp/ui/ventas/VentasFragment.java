@@ -1,10 +1,11 @@
 package com.example.gestionreparacionesapp.ui.ventas;
 
+// --- CÁMARA: Importaciones necesarias (algunas ya estaban) ---
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
+import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -16,6 +17,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView; // Importante
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
@@ -27,6 +29,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider; // Importante
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -44,6 +47,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.File; // Importante
+import java.io.IOException; // Importante
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -64,11 +69,12 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     private List<Cliente> listaClientesSpinner = new ArrayList<>();
     private List<Producto> listaProductosSpinner = new ArrayList<>();
 
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) abrirCamara();
-                else Toast.makeText(getContext(), "Permiso de cámara denegado.", Toast.LENGTH_SHORT).show();
-            });
+    // --- CÁMARA: PASO 1 - Declarar las variables modernas ---
+    private ActivityResultLauncher<String> requestPermissionLauncher;
+    private ActivityResultLauncher<Uri> takePictureLauncher;
+    private Uri tempImageUri = null;
+    private ImageView dialogImageView = null;
+    // --- FIN CÁMARA PASO 1 ---
 
     public VentasFragment() {}
 
@@ -79,7 +85,122 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         ventasViewModel = new ViewModelProvider(this).get(VentasViewModel.class);
         clientesViewModel = new ViewModelProvider(requireActivity()).get(ClientesViewModel.class);
         productoViewModel = new ViewModelProvider(requireActivity()).get(ProductoViewModel.class);
+
+        // --- CÁMARA: PASO 2 - Inicializar los ActivityResultLaunchers ---
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        launchCamera(); // Si nos dan permiso, lanzamos la cámara
+                    } else {
+                        Toast.makeText(getContext(), "Permiso de cámara es necesario.", Toast.LENGTH_SHORT).show();
+                    }
+                }
+        );
+
+        takePictureLauncher = registerForActivityResult(
+                new ActivityResultContracts.TakePicture(),
+                isSuccess -> {
+                    if (isSuccess && dialogImageView != null && tempImageUri != null) {
+                        // Si se tomó la foto, la mostramos
+                        dialogImageView.setImageURI(tempImageUri);
+                    }
+                }
+        );
+        // --- FIN CÁMARA PASO 2 ---
     }
+
+    // --- CÁMARA: PASO 3 - Modificar el diálogo de nuevo producto ---
+    private void mostrarDialogoNuevoProducto(LinearLayout containerProductosVenta) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
+        AlertDialog dialog = new AlertDialog.Builder(requireContext())
+                .setTitle("Nuevo Producto Rápido")
+                .setView(dialogView)
+                .create();
+
+        EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
+        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
+        EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
+        EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
+        Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
+        Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
+
+        // --- Conectar los botones de la cámara ---
+        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFotoProducto); // ID CORREGIDO
+        dialogImageView = dialogView.findViewById(R.id.ivProductoPreview);
+        btnAnadirFoto.setOnClickListener(v -> checkPermissionAndLaunchCamera());
+        // -----------------------------------------
+
+        btnGuardar.setOnClickListener(v -> {
+            String nombre = etNombre.getText().toString();
+            if (nombre.isEmpty()) {
+                Toast.makeText(getContext(), "El nombre del producto es obligatorio.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            // Pasamos la Uri de la imagen al guardar
+            String imageUriString = (tempImageUri != null) ? tempImageUri.toString() : null;
+
+            productoViewModel.insertarProducto(
+                    etSku.getText().toString(),
+                    nombre,
+                    etPrecio.getText().toString(),
+                    etCantidad.getText().toString(),
+                    imageUriString
+            );
+            dialog.dismiss();
+
+            // Lógica para refrescar spinners
+            productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<List<Producto>>() {
+                @Override
+                public void onChanged(List<Producto> productos) {
+                    if (productos.stream().anyMatch(p -> p.getNombre().equals(nombre))) {
+                        productoViewModel.getListaProductos().removeObserver(this);
+                        Toast.makeText(getContext(), "Producto guardado. Actualizando listas...", Toast.LENGTH_SHORT).show();
+                        refrescarSpinnersDeProductos(containerProductosVenta);
+                    }
+                }
+            });
+        });
+
+        btnCancelar.setOnClickListener(v -> {
+            tempImageUri = null; // Limpiar URI si se cancela
+            dialogImageView = null;
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    // --- CÁMARA: PASO 4 - Añadir los métodos de ayuda ---
+    private void checkPermissionAndLaunchCamera() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            launchCamera();
+        } else {
+            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
+        }
+    }
+
+    private void launchCamera() {
+        try {
+            File storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            File imageFile = File.createTempFile("JPEG_" + System.currentTimeMillis() + "_", ".jpg", storageDir);
+
+            tempImageUri = FileProvider.getUriForFile(
+                    requireContext(),
+                    requireContext().getPackageName() + ".provider",
+                    imageFile
+            );
+            takePictureLauncher.launch(tempImageUri);
+        } catch (IOException e) {
+            Toast.makeText(getContext(), "Error al preparar la cámara.", Toast.LENGTH_SHORT).show();
+            tempImageUri = null;
+        }
+    }
+    // --- FIN CÁMARA PASO 4 ---
+
+    // ==============================================================
+    // A PARTIR DE AQUÍ, ES TU CÓDIGO ORIGINAL SIN LA LÓGICA DE CÁMARA ANTIGUA
+    // ==============================================================
 
     @Nullable
     @Override
@@ -353,8 +474,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         return lista;
     }
 
-    // --- INICIO DE LA LÓGICA RESTAURADA ---
-
     private void mostrarDialogoNuevoCliente(Spinner spinnerClienteVenta) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
         AlertDialog dialog = new AlertDialog.Builder(requireContext())
@@ -377,7 +496,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             clientesViewModel.guardarCliente(dni, nombre, "", "", "");
             dialog.dismiss();
 
-            // Observamos hasta que la lista se actualice y seleccionamos al nuevo cliente
             clientesViewModel.getListaClientes().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<List<Cliente>>() {
                 @Override
                 public void onChanged(List<Cliente> clientes) {
@@ -386,56 +504,11 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                         int newClientIndex = -1;
                         for (int i = 0; i < clientes.size(); i++) {
                             if (clientes.get(i).getDni().equals(dni)) {
-                                newClientIndex = i + 1; // +1 por "Selecciona un cliente"
+                                newClientIndex = i + 1;
                                 break;
                             }
                         }
                         refrescarSpinnerDeClientes(spinnerClienteVenta, newClientIndex);
-                    }
-                }
-            });
-        });
-        btnCancelar.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-    }
-
-    private void mostrarDialogoNuevoProducto(LinearLayout containerProductosVenta) {
-        View dialogView = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
-        AlertDialog dialog = new AlertDialog.Builder(requireContext())
-                .setTitle("Nuevo Producto Rápido")
-                .setView(dialogView)
-                .create();
-
-        EditText etNombre = dialogView.findViewById(R.id.etNombreProductoDialog);
-        EditText etSku = dialogView.findViewById(R.id.etSkuDialog);
-        EditText etPrecio = dialogView.findViewById(R.id.etPrecioDialog);
-        EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
-        Button btnGuardar = dialogView.findViewById(R.id.btnGuardarProductoDialog);
-        Button btnCancelar = dialogView.findViewById(R.id.btnCancelarProductoDialog);
-
-        btnGuardar.setOnClickListener(v -> {
-            String nombre = etNombre.getText().toString();
-            if (nombre.isEmpty()) {
-                Toast.makeText(getContext(), "El nombre del producto es obligatorio.", Toast.LENGTH_SHORT).show();
-                return;
-            }
-            productoViewModel.insertarProducto(
-                    etSku.getText().toString(),
-                    nombre,
-                    etPrecio.getText().toString(),
-                    etCantidad.getText().toString(),
-                    null // imageUri
-            );
-            dialog.dismiss();
-
-            // Observamos hasta que la lista de productos se actualice
-            productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<List<Producto>>() {
-                @Override
-                public void onChanged(List<Producto> productos) {
-                    if (productos.stream().anyMatch(p -> p.getNombre().equals(nombre))) {
-                        productoViewModel.getListaProductos().removeObserver(this);
-                        Toast.makeText(getContext(), "Producto guardado. Actualizando listas...", Toast.LENGTH_SHORT).show();
-                        refrescarSpinnersDeProductos(containerProductosVenta);
                     }
                 }
             });
@@ -482,21 +555,5 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
                 spinnerProducto.setSelection(seleccionActual);
             }
         }
-    }
-
-    // --- FIN DE LA LÓGICA RESTAURADA ---
-
-    private void comprobarPermisoYlanzarCamara() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            abrirCamara();
-        } else {
-            requestPermissionLauncher.launch(Manifest.permission.CAMERA);
-        }
-    }
-
-    private void abrirCamara() {
-        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        // Esta línea necesita el launcher de resultado para procesar la imagen, pero se omite por simplicidad
-        startActivity(cameraIntent);
     }
 }

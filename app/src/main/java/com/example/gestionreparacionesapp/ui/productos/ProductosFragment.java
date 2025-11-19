@@ -1,14 +1,13 @@
 package com.example.gestionreparacionesapp.ui.productos;
 
 import android.Manifest;
-import android.content.ContentValues;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
-import android.text.Editable; // Importar TextWatcher
-import android.text.TextWatcher; // Importar TextWatcher
+import android.os.Environment;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -33,6 +33,8 @@ import com.example.gestionreparacionesapp.R;
 import com.example.gestionreparacionesapp.data.db.entity.Producto;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -43,8 +45,6 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
     private ProductosAdapter adapter;
     private TextView tvSinProductos;
     private FloatingActionButton fabAgregarProducto;
-
-    // NUEVO: EditText para el buscador
     private EditText etBuscadorProductos;
 
     private ActivityResultLauncher<String> requestPermissionLauncher;
@@ -66,21 +66,26 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
                     if (isGranted) {
-                        launchCamera();
+                        launchCamera(); // Si se concede el permiso, lanza la cámara
                     } else {
-                        Toast.makeText(getContext(), "Permiso de cámara necesario", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(getContext(), "Permiso de cámara denegado", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
 
-        // 2. Inicializar el lanzador para Tomar Foto
+        // 2. Inicializar el lanzador para Tomar Foto y recibir el resultado
         takePictureLauncher = registerForActivityResult(
                 new ActivityResultContracts.TakePicture(),
                 isSuccess -> {
                     if (isSuccess) {
+                        // Si la foto se tomó con éxito, la URI temporal (tempImageUri) es válida.
+                        // La mostramos en el ImageView del diálogo.
                         if (dialogImageView != null && tempImageUri != null) {
                             dialogImageView.setImageURI(tempImageUri);
                         }
+                    } else {
+                        // Si el usuario cancela la cámara, la URI se vuelve inválida. La limpiamos.
+                        tempImageUri = null;
                     }
                 }
         );
@@ -93,8 +98,6 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
         recyclerViewProductos = view.findViewById(R.id.recyclerViewProductos);
         tvSinProductos = view.findViewById(R.id.tvSinProductos);
         fabAgregarProducto = view.findViewById(R.id.fabAgregarProducto);
-
-        // Vincular el nuevo EditText
         etBuscadorProductos = view.findViewById(R.id.etBuscadorProductos);
 
         setupRecyclerView();
@@ -115,18 +118,14 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
     }
 
     private void setupListeners() {
-        fabAgregarProducto.setOnClickListener(v -> {
-            mostrarDialogoProducto(null);
-        });
+        fabAgregarProducto.setOnClickListener(v -> mostrarDialogoProducto(null));
 
-        // NUEVO: Listener para el buscador (TextWatcher)
         etBuscadorProductos.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // Llama al ViewModel para filtrar la lista CADA VEZ que el texto cambia
                 viewModel.buscarProductos(s.toString());
             }
 
@@ -135,28 +134,18 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
         });
     }
 
-    /**
-     * Clic normal (para Editar)
-     */
     @Override
     public void onProductoClick(Producto producto) {
-        mostrarDialogoProducto(producto); // Abre el diálogo para editar
+        mostrarDialogoProducto(producto);
     }
 
-    /**
-     * Clic Largo (para Borrar)
-     */
     @Override
     public void onProductoLongClick(Producto producto) {
-        // Mostrar diálogo de confirmación antes de borrar
         new AlertDialog.Builder(requireContext())
                 .setTitle("Eliminar Producto")
-                .setMessage("¿Estás seguro de que deseas eliminar '" + producto.getNombre() + "'? Esta acción no se puede deshacer.")
-                .setPositiveButton("Eliminar", (dialog, which) -> {
-                    // Llamar al ViewModel para borrar
-                    viewModel.eliminarProducto(producto);
-                })
-                .setNegativeButton("Cancelar", null) // No hace nada
+                .setMessage("¿Estás seguro de que deseas eliminar '" + producto.getNombre() + "'?")
+                .setPositiveButton("Eliminar", (dialog, which) -> viewModel.eliminarProducto(producto))
+                .setNegativeButton("Cancelar", null)
                 .show();
     }
 
@@ -177,9 +166,6 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
         });
     }
 
-    /**
-     * Muestra el diálogo para CREAR o EDITAR.
-     */
     private void mostrarDialogoProducto(@Nullable Producto producto) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         LayoutInflater inflater = requireActivity().getLayoutInflater();
@@ -192,9 +178,9 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
         EditText etCantidad = dialogView.findViewById(R.id.etCantidadDialog);
         Button btnGuardarProducto = dialogView.findViewById(R.id.btnGuardarProductoDialog);
         Button btnCancelarProducto = dialogView.findViewById(R.id.btnCancelarProductoDialog);
-        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFoto);
+        Button btnAnadirFoto = dialogView.findViewById(R.id.btnAnadirFotoProducto);
         dialogImageView = dialogView.findViewById(R.id.ivProductoPreview);
-        tempImageUri = null;
+        tempImageUri = null; // Reiniciar la URI cada vez que se abre el diálogo
 
         if (producto != null) {
             builder.setTitle("Editar Producto");
@@ -202,8 +188,8 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
             etNombre.setText(producto.getNombre());
             etPrecio.setText(String.format(Locale.US, "%.2f", producto.getPrecio()));
             etCantidad.setText(String.valueOf(producto.getCantidad()));
-            etSku.setEnabled(false);
-            if (producto.getImageUri() != null) {
+            etSku.setEnabled(false); // No se puede editar el SKU
+            if (producto.getImageUri() != null && !producto.getImageUri().isEmpty()) {
                 tempImageUri = Uri.parse(producto.getImageUri());
                 dialogImageView.setImageURI(tempImageUri);
             }
@@ -234,30 +220,48 @@ public class ProductosFragment extends Fragment implements ProductosAdapter.OnPr
         dialog.show();
     }
 
-    // --- Lógica de Cámara ---
+    // --- Lógica de Cámara (CORREGIDA) ---
 
     private void checkPermissionAndLaunchCamera() {
         String permission = Manifest.permission.CAMERA;
         if (ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED) {
+            // El permiso ya está concedido, lanzamos la cámara.
             launchCamera();
         } else {
+            // El permiso no está concedido, pedimos permiso.
+            // La respuesta la gestionará el `requestPermissionLauncher`.
             requestPermissionLauncher.launch(permission);
         }
     }
 
+    /**
+     * Prepara una URI segura usando FileProvider y lanza la cámara.
+     */
     private void launchCamera() {
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.Images.Media.TITLE, "Foto Producto " + System.currentTimeMillis());
-        values.put(MediaStore.Images.Media.DESCRIPTION, "Foto tomada por Gestión Reparaciones App");
-        tempImageUri = requireContext().getContentResolver().insert(
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                values
-        );
+        try {
+            // Crear un archivo temporal en el directorio privado de la app
+            File storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+            File imageFile = File.createTempFile(
+                    "JPEG_" + System.currentTimeMillis() + "_",
+                    ".jpg",
+                    storageDir
+            );
 
-        if (tempImageUri != null) {
+            // Obtener una URI para ese archivo usando el FileProvider
+            // La autoridad debe coincidir con la declarada en AndroidManifest.xml
+            tempImageUri = FileProvider.getUriForFile(
+                    requireContext(),
+                    requireContext().getPackageName() + ".provider",
+                    imageFile
+            );
+
+            // Lanzar la cámara con la URI segura. El resultado lo recibirá `takePictureLauncher`.
             takePictureLauncher.launch(tempImageUri);
-        } else {
-            Toast.makeText(getContext(), "Error al crear archivo de imagen", Toast.LENGTH_SHORT).show();
+
+        } catch (IOException e) {
+            Toast.makeText(getContext(), "Error al crear el archivo de imagen.", Toast.LENGTH_SHORT).show();
+            // Limpiamos la URI si hubo un error para evitar problemas
+            tempImageUri = null;
         }
     }
 }
