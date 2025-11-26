@@ -1,21 +1,49 @@
-<!-- REEMPLAZA TODO EL ARCHIVO CON ESTE CÓDIGO -->
+<?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content">
+    android:layout_height="match_parent">
 
     <LinearLayout
+        android:orientation="vertical"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
+        android:padding="16dp">
 
-        <!-- SELECCIÓN DE CLIENTE -->
+        <!-- CABECERA CON TÍTULO Y BOTÓN PDF (AQUÍ ESTÁ EL BOTÓN) -->
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Detalle Reparación"
+                android:textAppearance="?attr/textAppearanceTitleLarge"
+                android:gravity="center"
+                android:layout_centerVertical="true"/>
+
+            <!-- BOTÓN DE IMPRIMIR PDF / COMPARTIR -->
+            <!-- CAMBIO: Usamos un ícono de 'Share' nativo para que sea claro -->
+            <ImageButton
+                android:id="@+id/btnImprimirPdf"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@android:drawable/ic_menu_share"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:layout_alignParentEnd="true"
+                android:contentDescription="Generar y Compartir PDF"
+                app:tint="?attr/colorPrimary"/>
+
+        </RelativeLayout>
+
+        <!-- SECCIÓN 1: CLIENTE -->
         <TextView
-            style="@style/TextAppearance.MaterialComponents.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:labelFor="@+id/spinnerClienteReparacion"
-            android:text="Cliente" />
+            android:text="Cliente"
+            android:textStyle="bold"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -25,167 +53,192 @@
             <Spinner
                 android:id="@+id/spinnerClienteReparacion"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1" />
+                android:layout_height="48dp"
+                android:layout_weight="1"/>
 
             <Button
                 android:id="@+id/btnNuevoClienteReparacionDialog"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nuevo" />
+                android:text="Nuevo"
+                style="@style/Widget.Material3.Button.TextButton"/>
         </LinearLayout>
 
-        <!-- DATOS DEL EQUIPO -->
+        <!-- SECCIÓN 2: EQUIPO -->
         <TextView
-            style="@style/TextAppearance.MaterialComponents.Headline6"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Datos del Equipo a Reparar" />
+            android:text="Equipo"
+            android:textStyle="bold"
+            android:layout_marginTop="8dp"/>
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etEquipoMarca"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Marca del Equipo"
-                android:inputType="textCapWords" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etEquipoModelo"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Modelo del Equipo"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etEquipoSerie"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="Número de Serie (Opcional)"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- DETALLES DE LA REPARACIÓN -->
-        <TextView
-            style="@style/TextAppearance.MaterialComponents.Headline6"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:text="Detalles de la Reparación" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etDescripcionReparacion"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top"
-                android:hint="Descripción del Problema"
-                android:inputType="textMultiLine"
-                android:minLines="3" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etRepuestosUtilizados"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="top"
-                android:hint="Repuestos Utilizados (ej: Filtro, Canilla)"
-                android:inputType="textMultiLine"
-                android:minLines="2" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- COSTOS -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:orientation="horizontal">
-
-            <com.google.android.material.textfield.TextInputLayout
+            <EditText
+                android:id="@+id/etEquipoMarca"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
-                android:layout_weight="1">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etCostoRepuestos"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Costo Repuestos ($)"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
+                android:layout_weight="1"
+                android:hint="Marca"
+                android:inputType="textCapWords"/>
+            <EditText
+                android:id="@+id/etEquipoModelo"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8dp"
-                android:layout_weight="1">
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etCostoManoDeObra"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:hint="Mano de Obra ($)"
-                    android:inputType="numberDecimal" />
-            </com.google.android.material.textfield.TextInputLayout>
+                android:layout_weight="1"
+                android:hint="Modelo"
+                android:inputType="textCapWords"/>
         </LinearLayout>
 
-        <!-- ESTADO -->
+        <EditText
+            android:id="@+id/etEquipoSerie"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="N° Serie (Opcional)"/>
+
+        <EditText
+            android:id="@+id/etDescripcionReparacion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Descripción del problema / trabajo"
+            android:inputType="textMultiLine"
+            android:minLines="2"
+            android:gravity="top"/>
+
+        <!-- SECCIÓN 3: REPUESTOS -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider"
+            android:layout_marginVertical="12dp"/>
+
         <TextView
-            style="@style/TextAppearance.MaterialComponents.Caption"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:labelFor="@+id/spinnerEstadoReparacion"
-            android:text="Estado de la Reparación" />
+            android:text="Repuestos y Materiales"
+            android:textAppearance="?attr/textAppearanceTitleMedium"
+            android:textColor="?attr/colorPrimary"/>
 
         <Spinner
-            android:id="@+id/spinnerEstadoReparacion"
+            android:id="@+id/spinnerProductoSelector"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"/>
 
-        <!-- BOTONES -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-            <Button
-                android:id="@+id/btnCancelarReparacionDialog"
-                style="?attr/materialButtonOutlinedStyle"
+            <EditText
+                android:id="@+id/etCantidadRepuesto"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:hint="Cant."
+                android:inputType="number"
+                android:text="1"/>
+
+            <EditText
+                android:id="@+id/etPrecioRepuesto"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="8dp"
                 android:layout_weight="1"
-                android:text="Cancelar" />
+                android:hint="Precio Unit."
+                android:inputType="numberDecimal"/>
 
             <Button
-                android:id="@+id/btnGuardarReparacionDialog"
-                android:layout_width="0dp"
+                android:id="@+id/btnAgregarRepuesto"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Guardar" />
+                android:text="Agregar"
+                style="@style/Widget.Material3.Button.TonalButton"/>
         </LinearLayout>
+
+        <!-- CONTENEDOR DINÁMICO -->
+        <LinearLayout
+            android:id="@+id/llRepuestosContainer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="8dp"
+            android:padding="8dp"
+            android:background="?attr/colorSurfaceVariant">
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider"
+            android:layout_marginVertical="12dp"/>
+
+        <!-- SECCIÓN 4: MANO DE OBRA Y TOTAL -->
+        <EditText
+            android:id="@+id/etCostoManoDeObra"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Costo Mano de Obra ($)"
+            android:inputType="numberDecimal"/>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Estado:"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp"/>
+
+            <Spinner
+                android:id="@+id/spinnerEstadoReparacion"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"/>
+        </LinearLayout>
+
+        <!-- BOTONES DE ACCIÓN -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginTop="24dp">
+
+            <!-- Botón para guardar y seguir cargando -->
+            <Button
+                android:id="@+id/btnGuardarYOtraReparacion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Guardar y Agregar Otra Máquina"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_marginBottom="8dp"/>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="end">
+
+                <Button
+                    android:id="@+id/btnCancelarReparacionDialog"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Cancelar"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_marginEnd="8dp"/>
+
+                <Button
+                    android:id="@+id/btnGuardarReparacionDialog"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Finalizar"/>
+            </LinearLayout>
+        </LinearLayout>
+
     </LinearLayout>
 </ScrollView>
+

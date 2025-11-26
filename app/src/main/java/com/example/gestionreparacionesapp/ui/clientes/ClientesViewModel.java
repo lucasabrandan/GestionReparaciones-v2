@@ -1,6 +1,11 @@
 package com.example.gestionreparacionesapp.ui.clientes;
 
 import android.app.Application;
+import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
@@ -8,14 +13,17 @@ import androidx.lifecycle.MutableLiveData;
 
 import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.dao.ClienteDao;
+import com.example.gestionreparacionesapp.data.db.dao.ReparacionDao;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
+import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
 import com.example.gestionreparacionesapp.data.repository.ClienteRepository;
-import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
 import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
-// --- ¡IMPORTANTE! Asegúrate de que la clase SingleLiveEvent existe en este paquete ---
+import com.example.gestionreparacionesapp.util.PdfGenerator;
 import com.example.gestionreparacionesapp.util.SingleLiveEvent;
 
+import java.io.File;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class ClientesViewModel extends AndroidViewModel {
 
@@ -27,24 +35,13 @@ public class ClientesViewModel extends AndroidViewModel {
     private final MutableLiveData<ResultadoRegistro> operationResult = new MutableLiveData<>();
     public LiveData<ResultadoRegistro> getOperationResult() { return operationResult; }
 
-    // --- ¡AQUÍ LA IMPLEMENTACIÓN! ---
-    // 1. Se añade el SingleLiveEvent para notificar la creación de un cliente.
     private final SingleLiveEvent<Boolean> clienteCreadoConExito = new SingleLiveEvent<>();
+    public LiveData<Boolean> getClienteCreadoConExito() { return clienteCreadoConExito; }
 
-    /**
-     * El Fragment observará este LiveData. Se disparará una sola vez cuando un cliente
-     * se cree correctamente, para notificar a otras partes de la UI (como ReparacionesFragment).
-     */
-    public LiveData<Boolean> getClienteCreadoConExito() {
-        return clienteCreadoConExito;
-    }
-    // --- FIN DE LA IMPLEMENTACIÓN ---
+    private final SingleLiveEvent<File> pdfGeneradoEvent = new SingleLiveEvent<>();
+    public LiveData<File> getPdfGeneradoEvent() { return pdfGeneradoEvent; }
 
-    public enum ClienteFilterType {
-        TODOS,
-        CON_VENTAS,
-        CON_REPARACIONES
-    }
+    public enum ClienteFilterType { TODOS, CON_VENTAS, CON_REPARACIONES }
 
     public ClientesViewModel(@NonNull Application application) {
         super(application);
@@ -53,82 +50,62 @@ public class ClientesViewModel extends AndroidViewModel {
     }
 
     public void cargarClientes(ClienteFilterType filtro) {
-        RepositoryCallback<List<Cliente>> callback = result -> listaClientes.postValue(result);
-        switch (filtro) {
-            // ... tu lógica de switch
-            default:
-                repository.getAllClientes(callback);
-                break;
-        }
+        repository.getAllClientes(result -> listaClientes.postValue(result));
     }
 
     public void buscarClientes(String query) {
-        if (query == null || query.trim().isEmpty()) {
-            cargarClientes(ClienteFilterType.TODOS);
-        } else {
-            repository.buscarClientesPorNombre(query, result -> listaClientes.postValue(result));
-        }
+        if (query == null || query.trim().isEmpty()) cargarClientes(ClienteFilterType.TODOS);
+        else repository.buscarClientesPorNombre(query, result -> listaClientes.postValue(result));
     }
 
-    /**
-     * Inserta un nuevo cliente.
-     */
     public void guardarCliente(String dni, String nombre, String direccion, String localidad, String codigoPostal) {
         if (dni.isEmpty() || nombre.isEmpty()) {
-            operationResult.setValue(new ResultadoRegistro(false, "DNI y Nombre son obligatorios"));
+            operationResult.setValue(new ResultadoRegistro(false, "DNI y Nombre obligatorios"));
             return;
         }
-
         Cliente cliente = new Cliente(dni, nombre, direccion, localidad, codigoPostal);
-
-        // Asumiendo que tu repositorio tiene un callback así.
-        repository.insertCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
+        repository.insertCliente(cliente, result -> {
             operationResult.postValue(result);
             if (result.isSuccess) {
-                // Refrescamos la lista principal para que esté al día en todas partes.
                 cargarClientes(ClienteFilterType.TODOS);
-
-                // --- ¡AQUÍ LA MAGIA! ---
-                // 2. Disparamos el evento para que el observador en ReparacionesFragment se entere.
                 clienteCreadoConExito.postValue(true);
             }
         });
     }
 
-    /**
-     * Actualiza un cliente existente.
-     */
-    public void actualizarCliente(int clienteId, String dni, String nombre, String direccion, String localidad, String codigoPostal) {
-        if (dni.isEmpty() || nombre.isEmpty()) {
-            operationResult.setValue(new ResultadoRegistro(false, "DNI y Nombre son obligatorios"));
-            return;
-        }
-
+    public void actualizarCliente(int id, String dni, String nombre, String direccion, String localidad, String codigoPostal) {
         Cliente cliente = new Cliente(dni, nombre, direccion, localidad, codigoPostal);
-        cliente.setId(clienteId);
-
-        repository.updateCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
+        cliente.setId(id);
+        repository.updateCliente(cliente, result -> {
             operationResult.postValue(result);
-            if (result.isSuccess) cargarClientes(ClienteFilterType.TODOS);
+            if(result.isSuccess) cargarClientes(ClienteFilterType.TODOS);
         });
     }
 
-    /**
-     * Elimina un cliente.
-     */
     public void eliminarCliente(Cliente cliente) {
-        repository.deleteCliente(cliente, (RepositoryCallback<ResultadoRegistro>) result -> {
+        repository.deleteCliente(cliente, result -> {
             operationResult.postValue(result);
-            if (result.isSuccess) {
-                cargarClientes(ClienteFilterType.TODOS);
+            if(result.isSuccess) cargarClientes(ClienteFilterType.TODOS);
+        });
+    }
+
+    // --- GENERAR PDF Y COMPARTIR ---
+    public void generarPdfPresupuesto(Context context, Cliente cliente) {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            ReparacionDao reparacionDao = AppDatabase.getInstance(context).reparacionDao();
+            List<Reparacion> reparaciones = reparacionDao.getAllByCliente(cliente.getId());
+
+            if (reparaciones == null || reparaciones.isEmpty()) {
+                new Handler(Looper.getMainLooper()).post(() ->
+                        Toast.makeText(context, "Este cliente no tiene reparaciones para presupuestar.", Toast.LENGTH_SHORT).show());
+            } else {
+                // Generamos el archivo (Ahora sí retorna File)
+                File pdfFile = PdfGenerator.generarPresupuestoPdf(context, cliente, reparaciones);
+                // Notificamos para compartir
+                if (pdfFile != null) {
+                    pdfGeneradoEvent.postValue(pdfFile);
+                }
             }
         });
-    }
-
-    // Constructor vacío por si lo necesitas en algún sitio (no es mala práctica tenerlo)
-    public ClientesViewModel() {
-        super(null); // Llamada a super con null, no es ideal pero funciona si no usas el contexto.
-        // Lo mejor es quitarlo si no se usa.
-        this.repository = null;
     }
 }

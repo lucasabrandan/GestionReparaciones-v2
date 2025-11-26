@@ -22,22 +22,24 @@ public interface ProductoDao {
     @Delete
     void delete(Producto producto);
 
-    // CAMBIO: Ahora solo trae los del usuario logueado
+    // Obtener todos los productos del usuario
     @Query("SELECT * FROM productos WHERE userId = :userId ORDER BY nombre ASC")
     List<Producto> getAll(int userId);
 
-    @Query("SELECT * FROM productos WHERE id = :id LIMIT 1")
-    Producto getById(int id);
+    // Buscar productos por nombre o SKU
+    @Query("SELECT * FROM productos WHERE userId = :userId AND (nombre LIKE '%' || :query || '%' OR sku LIKE '%' || :query || '%')")
+    List<Producto> buscar(String query, int userId);
 
-    // CAMBIO: El SKU debe ser único por usuario
+    // Obtener por SKU (para validaciones)
     @Query("SELECT * FROM productos WHERE sku = :sku AND userId = :userId LIMIT 1")
     Producto getBySku(String sku, int userId);
 
-    // CAMBIO: La búsqueda ahora se filtra por usuario
-    @Query("SELECT * FROM productos WHERE userId = :userId AND (nombre LIKE '%' || :query || '%' OR sku LIKE '%' || :query || '%')")
-    List<Producto> buscarPorNombre(String query, int userId);
-
-    // CAMBIO: Los disponibles también se filtran por usuario
+    // Obtener disponibles (Stock > 0)
     @Query("SELECT * FROM productos WHERE cantidad > 0 AND userId = :userId ORDER BY nombre ASC")
     List<Producto> getDisponibles(int userId);
+
+    // --- ESTE ES EL MÉTODO QUE CAUSABA EL ERROR ---
+    // Ahora acepta 2 parámetros: id y userId
+    @Query("SELECT * FROM productos WHERE id = :id AND userId = :userId LIMIT 1")
+    Producto getById(int id, int userId);
 }

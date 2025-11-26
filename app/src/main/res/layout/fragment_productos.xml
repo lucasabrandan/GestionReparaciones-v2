@@ -7,19 +7,17 @@
     android:layout_height="match_parent"
     tools:context=".ui.productos.ProductosFragment">
 
-    <!-- Contenedor para la lista y el mensaje de "sin productos" -->
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- CAMBIO: Actualizado el 'hint' -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilBuscadorProductos"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             app:startIconDrawable="@drawable/ic_search"
-            android:hint="Buscar por nombre o SKU...">
+            android:hint="Buscar producto por nombre o SKU...">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBuscadorProductos"
@@ -29,7 +27,6 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- RecyclerView (ahora debajo del buscador) -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewProductos"
             android:layout_width="match_parent"
@@ -48,7 +45,6 @@
             android:visibility="gone" />
     </RelativeLayout>
 
-    <!-- Botón Flotante (FAB) para añadir nuevos productos -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAgregarProducto"
         android:layout_width="wrap_content"

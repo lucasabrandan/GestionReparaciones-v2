@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
@@ -9,26 +10,29 @@
         android:layout_height="wrap_content"
         android:padding="24dp">
 
-        <!-- DNI -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/nuevo_producto"
+            android:visibility="gone"
+            tools:ignore="MissingConstraints" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="DNI (único)">
-            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etDniClienteDialog"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="text" />
+                android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Nombre -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/nombre_cliente">
-            <!-- Este ID ya era correcto -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etNombreClienteDialog"
                 android:layout_width="match_parent"
@@ -36,13 +40,11 @@
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Dirección -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/direccion">
-            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etDireccionClienteDialog"
                 android:layout_width="match_parent"
@@ -50,13 +52,11 @@
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Localidad -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/localidad">
-            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etLocalidadClienteDialog"
                 android:layout_width="match_parent"
@@ -64,13 +64,11 @@
                 android:inputType="textCapWords" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Código Postal -->
         <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:hint="@string/codigo_postal">
-            <!-- ¡ID Corregido! -->
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etCpClienteDialog"
                 android:layout_width="match_parent"
@@ -78,7 +76,6 @@
                 android:inputType="number" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- Botones (sin cambios de ID) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

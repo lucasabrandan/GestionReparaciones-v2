@@ -22,25 +22,19 @@ public interface ReparacionDao {
     @Delete
     void delete(Reparacion reparacion);
 
-    /**
-     * Obtiene todas las reparaciones de un usuario, ordenadas por fecha descendente.
-     */
     @Query("SELECT * FROM reparaciones WHERE userId = :userId ORDER BY id DESC")
     List<Reparacion> getAll(int userId);
 
-    /**
-     * Busca reparaciones de un usuario cuya descripción coincida con la consulta.
-     */
     @Query("SELECT * FROM reparaciones WHERE userId = :userId AND " +
             "(descripcionProblema LIKE '%' || :query || '%' OR " +
             "equipoModelo LIKE '%' || :query || '%') " +
             "ORDER BY id DESC")
     List<Reparacion> buscar(String query, int userId);
 
-
-    /**
-     * Obtiene una reparación por su ID, asegurando que pertenezca al usuario en sesión.
-     */
     @Query("SELECT * FROM reparaciones WHERE id = :id AND userId = :userId")
     Reparacion getReparacionById(int id, int userId);
+
+    // --- NUEVO MÉTODO PARA EL PDF ---
+    @Query("SELECT * FROM reparaciones WHERE clienteId = :clienteId ORDER BY id DESC")
+    List<Reparacion> getAllByCliente(int clienteId);
 }

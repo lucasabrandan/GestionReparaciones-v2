@@ -4,14 +4,15 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="8dp"
-    android:layout_marginVertical="4dp">
+    android:layout_marginVertical="4dp"
+    app:cardElevation="2dp"
+    app:cardCornerRadius="8dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- Campo para Marca y Modelo del Equipo -->
         <TextView
             android:id="@+id/tvEquipo"
             android:layout_width="0dp"
@@ -22,7 +23,6 @@
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintEnd_toStartOf="@id/tvEstado"/>
 
-        <!-- Campo para el Cliente -->
         <TextView
             android:id="@+id/tvCliente"
             android:layout_width="wrap_content"
@@ -34,7 +34,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvEquipo" />
 
-        <!-- Campo para la Descripción del Problema -->
         <TextView
             android:id="@+id/tvDescripcion"
             android:layout_width="0dp"
@@ -46,11 +45,10 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvCliente" />
 
-        <!-- Campo para el Presupuesto Total -->
         <TextView
             android:id="@+id/tvPresupuesto"
             android:layout_width="wrap_content"
-            android_layout_height="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:text="$1500.00"
             android:textAppearance="@style/TextAppearance.Material3.TitleSmall"
@@ -58,7 +56,6 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvDescripcion" />
 
-        <!-- Campo para el Estado -->
         <TextView
             android:id="@+id/tvEstado"
             android:layout_width="wrap_content"

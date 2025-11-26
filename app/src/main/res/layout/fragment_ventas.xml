@@ -11,15 +11,14 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <!-- Campo de Búsqueda -->
+        <!-- Buscador -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilBuscadorVentas"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_margin="16dp"
             app:startIconDrawable="@drawable/ic_search"
-            android:hint="Buscar por cliente o fecha...">
+            android:hint="Buscar venta por fecha...">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/etBuscadorVentas"
@@ -29,17 +28,15 @@
                 android:maxLines="1" />
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- RecyclerView para la lista de ventas -->
+        <!-- Lista de Ventas -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/recyclerViewVentas"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_below="@id/tilBuscadorVentas"
-            android:clipToPadding="false"
-            android:paddingBottom="80dp"
+            android:padding="8dp"
             tools:listitem="@layout/item_venta" />
 
-        <!-- Mensaje para cuando no hay ventas -->
         <TextView
             android:id="@+id/tvSinVentas"
             android:layout_width="wrap_content"
@@ -50,15 +47,14 @@
             android:visibility="gone" />
     </RelativeLayout>
 
-    <!-- Botón Flotante (FAB) para añadir nuevas ventas -->
+    <!-- Botón Flotante -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fabAgregarVenta"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        app:srcCompat="@drawable/ic_add"
-        android:contentDescription="Agregar Nueva Venta" />
+        android:src="@drawable/ic_add"
+        android:contentDescription="Nueva Venta" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
-    

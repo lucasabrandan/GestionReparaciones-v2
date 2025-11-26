@@ -1,7 +1,6 @@
 package com.example.gestionreparacionesapp.model;
 
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
-import com.example.gestionreparacionesapp.ui.ventas.ProductoVenta; // Necesitamos esta clase para la lista
 
 import java.util.List;
 

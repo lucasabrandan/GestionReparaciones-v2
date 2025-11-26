@@ -1,8 +1,7 @@
 package com.example.gestionreparacionesapp.data.repository;
 
 import android.content.Context;
-import android.os.AsyncTask;
-
+import com.example.gestionreparacionesapp.data.db.AppDatabase;
 import com.example.gestionreparacionesapp.data.db.dao.ProductoDao;
 import com.example.gestionreparacionesapp.data.db.entity.Producto;
 import com.example.gestionreparacionesapp.data.util.RepositoryCallback;
@@ -10,176 +9,95 @@ import com.example.gestionreparacionesapp.data.util.ResultadoRegistro;
 import com.example.gestionreparacionesapp.util.SessionManager;
 
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class ProductoRepository {
 
     private final ProductoDao productoDao;
-    private final Context context;
+    private final ExecutorService executorService;
+    private final int userId;
 
-    // CAMBIO: El constructor ahora necesita Context
     public ProductoRepository(ProductoDao productoDao, Context context) {
+        AppDatabase db = AppDatabase.getInstance(context);
         this.productoDao = productoDao;
-        this.context = context;
+        this.executorService = Executors.newSingleThreadExecutor();
+        this.userId = SessionManager.getUserId(context);
     }
 
     // --- OBTENER TODOS (READ) ---
-
     public void getAllProductos(RepositoryCallback<List<Producto>> callback) {
-        // Pasamos el contexto al AsyncTask
-        new GetAllProductosAsyncTask(productoDao, callback, context).execute();
-    }
-
-    private static class GetAllProductosAsyncTask extends AsyncTask<Void, Void, List<Producto>> {
-        private final ProductoDao asyncDao;
-        private final RepositoryCallback<List<Producto>> callback;
-        private final int userId; // <-- NUEVO: ID del usuario
-
-        GetAllProductosAsyncTask(ProductoDao dao, RepositoryCallback<List<Producto>> callback, Context context) {
-            this.asyncDao = dao;
-            this.callback = callback;
-            this.userId = SessionManager.getUserId(context); // Obtenemos el ID de la sesión
-        }
-        @Override
-        protected List<Producto> doInBackground(Void... voids) {
-            if (userId == -1) return null; // No hay usuario, no devolver nada
-            return asyncDao.getAll(userId); // CAMBIO: Filtramos por ID
-        }
-        @Override
-        protected void onPostExecute(List<Producto> productos) {
-            if (callback != null) callback.onComplete(productos);
-        }
-    }
-
-    // --- INSERTAR (CREATE) ---
-
-    public void insertProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
-        new InsertProductoAsyncTask(productoDao, callback, context).execute(producto);
-    }
-
-    private static class InsertProductoAsyncTask extends AsyncTask<Producto, Void, ResultadoRegistro> {
-        private final ProductoDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        private final int userId; // <-- NUEVO: ID del usuario
-
-        InsertProductoAsyncTask(ProductoDao dao, RepositoryCallback<ResultadoRegistro> callback, Context context) {
-            this.asyncDao = dao;
-            this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Producto... productos) {
-            if (userId == -1) return new ResultadoRegistro(false, "Error de sesión");
-
-            Producto nuevoProducto = productos[0];
-            nuevoProducto.setUserId(userId); // ¡Asignamos el producto al usuario!
-
-            // CAMBIO: Verificamos SKU + userId
-            if (asyncDao.getBySku(nuevoProducto.getSku(), userId) != null) {
-                return new ResultadoRegistro(false, "Error: El SKU ya existe para este usuario.");
+        executorService.execute(() -> {
+            if (userId != -1) {
+                List<Producto> productos = productoDao.getAll(userId);
+                if (callback != null) callback.onComplete(productos);
             }
-            long id = asyncDao.insert(nuevoProducto);
-            if (id > 0) {
-                return new ResultadoRegistro(true, "Producto guardado");
-            } else {
-                return new ResultadoRegistro(false, "Error al guardar");
-            }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) {
-            if (callback != null) callback.onComplete(resultado);
-        }
-    }
-
-    // --- ACTUALIZAR (UPDATE) ---
-
-    public void updateProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
-        new UpdateProductoAsyncTask(productoDao, callback, context).execute(producto);
-    }
-
-    private static class UpdateProductoAsyncTask extends AsyncTask<Producto, Void, ResultadoRegistro> {
-        private final ProductoDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        private final int userId; // <-- NUEVO: ID del usuario
-
-        UpdateProductoAsyncTask(ProductoDao dao, RepositoryCallback<ResultadoRegistro> callback, Context context) {
-            this.asyncDao = dao;
-            this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Producto... productos) {
-            if (userId == -1) return new ResultadoRegistro(false, "Error de sesión");
-
-            Producto producto = productos[0];
-            producto.setUserId(userId); // Aseguramos que el producto pertenezca al usuario
-
-            try {
-                asyncDao.update(producto);
-                return new ResultadoRegistro(true, "Producto actualizado");
-            } catch (Exception e) {
-                return new ResultadoRegistro(false, "Error al actualizar");
-            }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) {
-            if (callback != null) callback.onComplete(resultado);
-        }
-    }
-
-    // --- ELIMINAR (DELETE) ---
-
-    public void deleteProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
-        new DeleteProductoAsyncTask(productoDao, callback).execute(producto);
-    }
-
-    private static class DeleteProductoAsyncTask extends AsyncTask<Producto, Void, ResultadoRegistro> {
-        private final ProductoDao asyncDao;
-        private final RepositoryCallback<ResultadoRegistro> callback;
-        DeleteProductoAsyncTask(ProductoDao dao, RepositoryCallback<ResultadoRegistro> callback) {
-            this.asyncDao = dao;
-            this.callback = callback;
-        }
-        @Override
-        protected ResultadoRegistro doInBackground(Producto... productos) {
-            // (DELETE no necesita filtrar por userId, ya que el objeto 'producto' tiene el ID PK)
-            try {
-                asyncDao.delete(productos[0]);
-                return new ResultadoRegistro(true, "Producto eliminado");
-            } catch (Exception e) {
-                return new ResultadoRegistro(false, "Error al eliminar");
-            }
-        }
-        @Override
-        protected void onPostExecute(ResultadoRegistro resultado) {
-            if (callback != null) callback.onComplete(resultado);
-        }
+        });
     }
 
     // --- BUSCAR (SEARCH) ---
-
     public void buscarProductosPorNombre(String query, RepositoryCallback<List<Producto>> callback) {
-        new BuscarProductosAsyncTask(productoDao, callback, context).execute(query);
+        executorService.execute(() -> {
+            if (userId != -1) {
+                // CORRECCIÓN: Llamamos a 'buscar', que es como se llama en el DAO
+                List<Producto> productos = productoDao.buscar(query, userId);
+                if (callback != null) callback.onComplete(productos);
+            }
+        });
     }
 
-    private static class BuscarProductosAsyncTask extends AsyncTask<String, Void, List<Producto>> {
-        private final ProductoDao asyncDao;
-        private final RepositoryCallback<List<Producto>> callback;
-        private final int userId; // <-- NUEVO: ID del usuario
+    // --- INSERTAR (CREATE) ---
+    public void insertProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
+            if (userId == -1) {
+                if (callback != null) callback.onComplete(new ResultadoRegistro(false, "Error de sesión"));
+                return;
+            }
 
-        BuscarProductosAsyncTask(ProductoDao dao, RepositoryCallback<List<Producto>> callback, Context context) {
-            this.asyncDao = dao;
-            this.callback = callback;
-            this.userId = SessionManager.getUserId(context);
-        }
+            try {
+                producto.setUserId(userId);
 
-        @Override
-        protected List<Producto> doInBackground(String... queries) {
-            if (userId == -1) return null;
-            return asyncDao.buscarPorNombre(queries[0], userId); // CAMBIO: Filtramos por ID
-        }
-        @Override
-        protected void onPostExecute(List<Producto> productos) {
-            if (callback != null) callback.onComplete(productos);
-        }
+                // Verificar SKU único
+                if (productoDao.getBySku(producto.getSku(), userId) != null) {
+                    if (callback != null) callback.onComplete(new ResultadoRegistro(false, "El SKU ya existe."));
+                    return;
+                }
+
+                long id = productoDao.insert(producto);
+                if (id > 0) {
+                    // Devolvemos el ID en el mensaje para que el ViewModel pueda usarlo
+                    if (callback != null) callback.onComplete(new ResultadoRegistro(true, String.valueOf(id)));
+                } else {
+                    if (callback != null) callback.onComplete(new ResultadoRegistro(false, "Error al guardar"));
+                }
+            } catch (Exception e) {
+                if (callback != null) callback.onComplete(new ResultadoRegistro(false, "Error: " + e.getMessage()));
+            }
+        });
+    }
+
+    // --- ACTUALIZAR (UPDATE) ---
+    public void updateProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
+            try {
+                producto.setUserId(userId); // Asegurar pertenencia
+                productoDao.update(producto);
+                if (callback != null) callback.onComplete(new ResultadoRegistro(true, "Producto actualizado"));
+            } catch (Exception e) {
+                if (callback != null) callback.onComplete(new ResultadoRegistro(false, "Error al actualizar"));
+            }
+        });
+    }
+
+    // --- ELIMINAR (DELETE) ---
+    public void deleteProducto(Producto producto, RepositoryCallback<ResultadoRegistro> callback) {
+        executorService.execute(() -> {
+            try {
+                productoDao.delete(producto);
+                if (callback != null) callback.onComplete(new ResultadoRegistro(true, "Producto eliminado"));
+            } catch (Exception e) {
+                if (callback != null) callback.onComplete(new ResultadoRegistro(false, "Error al eliminar"));
+            }
+        });
     }
 }

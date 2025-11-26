@@ -6,6 +6,7 @@
       almacenamiento privado de la app.
       Ej: /storage/emulated/0/Android/data/com.example.gestionreparacionesapp/files/Pictures
     -->
+    <external-files-path name="my_documents" path="Documents" />
     <external-files-path
         name="my_images"
         path="Pictures" />
