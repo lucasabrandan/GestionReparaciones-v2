@@ -13,4 +13,8 @@ public interface ProductoReparacionDao {
 
     @Query("SELECT * FROM productos_reparacion WHERE reparacionId = :reparacionId")
     List<ProductoReparacion> getItemsPorReparacion(int reparacionId);
+
+    // --- NUEVO: Para limpiar repuestos al editar ---
+    @Query("DELETE FROM productos_reparacion WHERE reparacionId = :reparacionId")
+    void deleteByReparacionId(int reparacionId);
 }

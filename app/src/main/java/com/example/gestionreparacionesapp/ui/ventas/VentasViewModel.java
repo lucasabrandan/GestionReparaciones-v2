@@ -26,7 +26,6 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -127,35 +126,28 @@ public class VentasViewModel extends AndroidViewModel {
         });
     }
 
-    // --- GENERAR COMPROBANTE DE VENTA ---
+    // --- GENERAR COMPROBANTE Y GUARDAR RUTA ---
     public void generarComprobanteVenta(Context context, Venta venta) {
         Executors.newSingleThreadExecutor().execute(() -> {
             AppDatabase db = AppDatabase.getInstance(context);
-
-            // 1. Obtener Cliente
             Cliente c = db.clienteDao().getById(venta.getClienteId());
 
-            // 2. Obtener Productos
-            List<ProductoVenta> productos = new ArrayList<>();
+            List<ProductoVenta> productos = null;
             try {
-                // Asegúrate de que 'productoVentaDao()' exista en tu AppDatabase.java
                 productos = db.productoVentaDao().getItemsPorVenta(venta.getId());
             } catch (Exception e) {
-                Log.e("VentasViewModel", "Error al obtener productos desde BD, usando lista vacía", e);
+                Log.e("VentasViewModel", "Error al obtener productos", e);
             }
 
             if (c != null) {
-                // 3. Generar PDF
-                // Asegúrate de que PdfGenerator.java tenga el método generarComprobanteVenta
                 File pdf = PdfGenerator.generarComprobanteVenta(context, c, venta, productos);
+                if(pdf != null) {
+                    // GUARDAR RUTA EN LA BD
+                    venta.setPdfPath(pdf.getAbsolutePath());
+                    db.ventaDao().update(venta);
 
-                if (pdf != null) {
                     pdfGeneradoEvent.postValue(pdf);
                 }
-            } else {
-                new Handler(Looper.getMainLooper()).post(() ->
-                        Toast.makeText(context, "No se encontró el cliente asociado a la venta", Toast.LENGTH_SHORT).show()
-                );
             }
         });
     }

@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:padding="16dp">
 
-        <!-- CABECERA CON TÍTULO Y BOTÓN PDF (AQUÍ ESTÁ EL BOTÓN) -->
+        <!-- CABECERA -->
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -24,8 +24,6 @@
                 android:gravity="center"
                 android:layout_centerVertical="true"/>
 
-            <!-- BOTÓN DE IMPRIMIR PDF / COMPARTIR -->
-            <!-- CAMBIO: Usamos un ícono de 'Share' nativo para que sea claro -->
             <ImageButton
                 android:id="@+id/btnImprimirPdf"
                 android:layout_width="48dp"
@@ -33,9 +31,8 @@
                 android:src="@android:drawable/ic_menu_share"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:layout_alignParentEnd="true"
-                android:contentDescription="Generar y Compartir PDF"
+                android:contentDescription="Compartir PDF"
                 app:tint="?attr/colorPrimary"/>
-
         </RelativeLayout>
 
         <!-- SECCIÓN 1: CLIENTE -->
@@ -48,7 +45,9 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
 
             <Spinner
                 android:id="@+id/spinnerClienteReparacion"
@@ -61,14 +60,16 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Nuevo"
-                style="@style/Widget.Material3.Button.TextButton"/>
+                style="@style/Widget.Material3.Button.TextButton"
+                android:minWidth="0dp"
+                android:paddingHorizontal="12dp"/>
         </LinearLayout>
 
         <!-- SECCIÓN 2: EQUIPO -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Equipo"
+            android:text="Datos del Equipo"
             android:textStyle="bold"
             android:layout_marginTop="8dp"/>
 
@@ -76,56 +77,65 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal">
-            <EditText
-                android:id="@+id/etEquipoMarca"
+
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Marca"
-                android:inputType="textCapWords"/>
-            <EditText
-                android:id="@+id/etEquipoModelo"
+                android:hint="Marca">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etEquipoMarca"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapWords"/>
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <Space android:layout_width="8dp" android:layout_height="wrap_content"/>
+
+            <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Modelo"
-                android:inputType="textCapWords"/>
+                android:hint="Modelo">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etEquipoModelo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textCapWords"/>
+            </com.google.android.material.textfield.TextInputLayout>
         </LinearLayout>
 
-        <EditText
-            android:id="@+id/etEquipoSerie"
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="N° Serie (Opcional)"/>
+            android:layout_marginTop="8dp"
+            android:hint="N° Serie (Opcional)">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etEquipoSerie"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
-        <EditText
-            android:id="@+id/etDescripcionReparacion"
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Descripción del problema / trabajo"
-            android:inputType="textMultiLine"
-            android:minLines="2"
-            android:gravity="top"/>
+            android:layout_marginTop="8dp"
+            android:hint="Falla / Trabajo a realizar">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDescripcionReparacion"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
+                android:minLines="2"
+                android:gravity="top"/>
+        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- SECCIÓN 3: REPUESTOS -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="?android:attr/listDivider"
-            android:layout_marginVertical="12dp"/>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Repuestos y Materiales"
-            android:textAppearance="?attr/textAppearanceTitleMedium"
-            android:textColor="?attr/colorPrimary"/>
-
-        <Spinner
-            android:id="@+id/spinnerProductoSelector"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"/>
+            android:layout_marginVertical="16dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -133,54 +143,135 @@
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
-            <EditText
-                android:id="@+id/etCantidadRepuesto"
-                android:layout_width="60dp"
-                android:layout_height="wrap_content"
-                android:hint="Cant."
-                android:inputType="number"
-                android:text="1"/>
-
-            <EditText
-                android:id="@+id/etPrecioRepuesto"
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Precio Unit."
-                android:inputType="numberDecimal"/>
+                android:text="Repuestos y Materiales"
+                android:textAppearance="?attr/textAppearanceTitleMedium"
+                android:textColor="?attr/colorPrimary"/>
 
             <Button
-                android:id="@+id/btnAgregarRepuesto"
+                android:id="@+id/btnHabilitarRepuestos"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Agregar"
-                style="@style/Widget.Material3.Button.TonalButton"/>
+                android:text="Añadir Repuesto"
+                style="@style/Widget.Material3.Button.TonalButton.Icon"
+                app:icon="@drawable/ic_add"
+                android:padding="0dp"/>
         </LinearLayout>
 
-        <!-- CONTENEDOR DINÁMICO -->
+        <!-- CONTENEDOR OCULTO POR DEFECTO -->
+        <LinearLayout
+            android:id="@+id/llFormularioRepuestos"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:background="?attr/colorSurfaceVariant"
+            android:padding="8dp"
+            android:layout_marginTop="8dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <Spinner
+                    android:id="@+id/spinnerProductoSelector"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"/>
+
+                <!-- ¡AQUÍ ESTÁ EL BOTÓN QUE FALTABA! -->
+                <Button
+                    android:id="@+id/btnNuevoProductoReparacion"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nuevo"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="12dp"/>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="4dp">
+
+                <EditText
+                    android:id="@+id/etCantidadRepuesto"
+                    android:layout_width="60dp"
+                    android:layout_height="wrap_content"
+                    android:hint="Cant."
+                    android:inputType="number"
+                    android:text="1"
+                    android:background="@android:color/white"
+                    android:padding="8dp"/>
+
+                <Space android:layout_width="8dp" android:layout_height="wrap_content"/>
+
+                <EditText
+                    android:id="@+id/etPrecioRepuesto"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Precio Unit."
+                    android:inputType="numberDecimal"
+                    android:background="@android:color/white"
+                    android:padding="8dp"/>
+
+                <Space android:layout_width="8dp" android:layout_height="wrap_content"/>
+
+                <Button
+                    android:id="@+id/btnAgregarRepuesto"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Agregar"/>
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Lista visual de items agregados -->
         <LinearLayout
             android:id="@+id/llRepuestosContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:layout_marginTop="8dp"
-            android:padding="8dp"
-            android:background="?attr/colorSurfaceVariant">
+            android:layout_marginTop="8dp">
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="?android:attr/listDivider"
-            android:layout_marginVertical="12dp"/>
+            android:layout_marginVertical="16dp"/>
 
-        <!-- SECCIÓN 4: MANO DE OBRA Y TOTAL -->
-        <EditText
-            android:id="@+id/etCostoManoDeObra"
+        <!-- SECCIÓN 4: COSTOS -->
+        <com.google.android.material.textfield.TextInputLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Costo Mano de Obra ($)"
-            android:inputType="numberDecimal"/>
+            android:hint="Mano de Obra ($)">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCostoManoDeObra"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"/>
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- TOTAL ESTIMADO -->
+        <TextView
+            android:id="@+id/tvTotalPresupuesto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Total Estimado: $0.00"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorPrimary"
+            android:gravity="end"
+            android:layout_marginTop="12dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -201,14 +292,13 @@
                 android:layout_height="48dp"/>
         </LinearLayout>
 
-        <!-- BOTONES DE ACCIÓN -->
+        <!-- BOTONES FINALES -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:layout_marginTop="24dp">
 
-            <!-- Botón para guardar y seguir cargando -->
             <Button
                 android:id="@+id/btnGuardarYOtraReparacion"
                 android:layout_width="match_parent"
@@ -238,7 +328,5 @@
                     android:text="Finalizar"/>
             </LinearLayout>
         </LinearLayout>
-
     </LinearLayout>
 </ScrollView>
-

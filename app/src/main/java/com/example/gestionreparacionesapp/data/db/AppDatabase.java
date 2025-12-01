@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
         Reparacion.class,
         ProductoReparacion.class,
         ProductoVenta.class // <--- AGREGADO
-}, version = 20, exportSchema = false)
+}, version = 22, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
 
     public abstract UsuarioDao usuarioDao();

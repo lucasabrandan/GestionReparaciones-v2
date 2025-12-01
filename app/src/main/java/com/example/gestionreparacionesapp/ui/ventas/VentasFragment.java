@@ -26,15 +26,15 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.gestionreparacionesapp.R;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
 import com.example.gestionreparacionesapp.data.db.entity.Producto;
-import com.example.gestionreparacionesapp.data.db.entity.ProductoVenta; // <--- LA IMPORTACIÓN CORRECTA
+import com.example.gestionreparacionesapp.data.db.entity.ProductoVenta;
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
 import com.example.gestionreparacionesapp.ui.clientes.ClientesViewModel;
 import com.example.gestionreparacionesapp.ui.productos.ProductoViewModel;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInteractionListener {
 
@@ -46,9 +46,12 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     private RecyclerView recyclerViewVentas;
     private EditText etBuscador;
 
-    // Listas para Spinners
     private List<Cliente> listaClientes = new ArrayList<>();
     private List<Producto> listaProductos = new ArrayList<>();
+    private ArrayAdapter<String> clientAdapter;
+    private ArrayAdapter<String> productAdapter;
+    private Spinner spClienteGlobal;
+    private Spinner spProductoGlobal;
 
     public VentasFragment() {}
 
@@ -58,16 +61,16 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         ventasViewModel = new ViewModelProvider(this).get(VentasViewModel.class);
         clientesViewModel = new ViewModelProvider(requireActivity()).get(ClientesViewModel.class);
         productoViewModel = new ViewModelProvider(this).get(ProductoViewModel.class);
-        adapter = new VentasAdapter(new ArrayList<>(), this);
+        adapter = new VentasAdapter(new ArrayList<>(), new ArrayList<>(), this); // Pasamos lista vacía de clientes por ahora
     }
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_ventas, container, false); // Asegúrate de tener este XML
-        recyclerViewVentas = view.findViewById(R.id.recyclerViewVentas); // Asegúrate de este ID en el XML
-        etBuscador = view.findViewById(R.id.etBuscadorVentas); // Asegúrate de este ID
-        FloatingActionButton fab = view.findViewById(R.id.fabAgregarVenta); // Asegúrate de este ID
+        View view = inflater.inflate(R.layout.fragment_ventas, container, false);
+        recyclerViewVentas = view.findViewById(R.id.recyclerViewVentas);
+        etBuscador = view.findViewById(R.id.etBuscadorVentas);
+        FloatingActionButton fab = view.findViewById(R.id.fabAgregarVenta);
 
         recyclerViewVentas.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerViewVentas.setAdapter(adapter);
@@ -81,7 +84,6 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
             }
             public void afterTextChanged(Editable s) {}
         });
-
         return view;
     }
 
@@ -89,93 +91,132 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Cargas iniciales
         ventasViewModel.cargarVentas();
         clientesViewModel.cargarClientes(ClientesViewModel.ClienteFilterType.TODOS);
         productoViewModel.cargarProductos();
 
-        // Observers
         ventasViewModel.getListaVentas().observe(getViewLifecycleOwner(), list -> adapter.setVentas(list));
-        clientesViewModel.getListaClientes().observe(getViewLifecycleOwner(), list -> listaClientes = list);
-        productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), list -> listaProductos = list);
+
+        // Observar Clientes y actualizar Adapter y Spinner
+        clientesViewModel.getListaClientes().observe(getViewLifecycleOwner(), list -> {
+            if(list != null) {
+                listaClientes = list;
+                adapter.setClientes(list); // Actualizamos adapter para que muestre nombres
+                if(clientAdapter != null) {
+                    actualizarSpinnerClientes(clientAdapter, list);
+                    // Auto-seleccionar si se creó uno nuevo
+                    if(list.size() > 0 && spClienteGlobal != null && spClienteGlobal.getSelectedItemPosition() == 0) {
+                        spClienteGlobal.setSelection(list.size());
+                    }
+                }
+            }
+        });
+
+        productoViewModel.getListaProductos().observe(getViewLifecycleOwner(), list -> {
+            if(list != null) {
+                listaProductos = list;
+                if(productAdapter != null) {
+                    actualizarSpinnerProductos(productAdapter, list);
+                    if(list.size() > 0 && spProductoGlobal != null && spProductoGlobal.getSelectedItemPosition() == 0) {
+                        spProductoGlobal.setSelection(list.size());
+                    }
+                }
+            }
+        });
 
         ventasViewModel.getOperationResult().observe(getViewLifecycleOwner(), res -> {
             if(res != null) Toast.makeText(getContext(), res.message, Toast.LENGTH_SHORT).show();
         });
 
-        // Observer para el PDF
-        ventasViewModel.getPdfGeneradoEvent().observe(getViewLifecycleOwner(), file -> {
-            if (file != null) {
-                // Aquí podrías llamar al método de compartir que usamos en ReparacionesFragment
-                // Por brevedad, solo mostramos toast, pero copia el método compartirPdf aquí si quieres.
-                Toast.makeText(getContext(), "PDF generado: " + file.getName(), Toast.LENGTH_LONG).show();
-            }
+        ventasViewModel.getPdfGeneradoEvent().observe(getViewLifecycleOwner(), this::compartirPdf);
+
+        // Refrescos
+        clientesViewModel.getClienteCreadoConExito().observe(getViewLifecycleOwner(), success -> {
+            if(success) clientesViewModel.cargarClientes(ClientesViewModel.ClienteFilterType.TODOS);
+        });
+        productoViewModel.getNuevoProductoCreadoEvent().observe(getViewLifecycleOwner(), p -> {
+            if(p != null) productoViewModel.cargarProductos();
         });
     }
 
     private void mostrarDialogoNuevaVenta() {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        View view = getLayoutInflater().inflate(R.layout.dialog_nueva_venta, null); // Necesitas crear este XML similar al de reparacion
+        View view = getLayoutInflater().inflate(R.layout.dialog_nueva_venta, null);
         builder.setView(view);
 
         Spinner spCliente = view.findViewById(R.id.spinnerClienteVenta);
+        this.spClienteGlobal = spCliente;
         Spinner spProducto = view.findViewById(R.id.spinnerProductoVenta);
+        this.spProductoGlobal = spProducto;
+
         EditText etCantidad = view.findViewById(R.id.etCantidadVenta);
         Button btnAgregar = view.findViewById(R.id.btnAgregarProductoVenta);
         LinearLayout llContainer = view.findViewById(R.id.llProductosVentaContainer);
         TextView tvTotal = view.findViewById(R.id.tvTotalVentaDialog);
         Button btnFinalizar = view.findViewById(R.id.btnFinalizarVenta);
 
-        // Configurar Spinners
+        Button btnNewCli = view.findViewById(R.id.btnNuevoClienteVenta);
+        Button btnNewProd = view.findViewById(R.id.btnNuevoProductoVenta);
+        Button btnCancel = view.findViewById(R.id.btnCancelarVenta);
+
         configurarSpinnerClientes(spCliente);
         configurarSpinnerProductos(spProducto);
 
-        // Lista temporal de productos AÑADIDOS AL CARRITO
         List<ProductoVenta> carrito = new ArrayList<>();
         final double[] totalVenta = {0.0};
 
+        // Listeners Nuevo
+        if(btnNewCli != null) btnNewCli.setOnClickListener(v -> mostrarDialogoNuevoCliente());
+        if(btnNewProd != null) btnNewProd.setOnClickListener(v -> mostrarDialogoNuevoProducto());
+
+        AlertDialog dialog = builder.create();
+        if(btnCancel != null) btnCancel.setOnClickListener(v -> dialog.dismiss());
+
         btnAgregar.setOnClickListener(v -> {
             int pos = spProducto.getSelectedItemPosition();
-            if (pos <= 0) return;
+            if (pos <= 0) {
+                Toast.makeText(getContext(), "Seleccione un producto", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             Producto prod = listaProductos.get(pos - 1);
             try {
-                int cant = Integer.parseInt(etCantidad.getText().toString());
+                String cantStr = etCantidad.getText().toString();
+                if (cantStr.isEmpty()) { etCantidad.setError("Requerido"); return; }
+                int cant = Integer.parseInt(cantStr);
                 if (cant <= 0) throw new NumberFormatException();
+
                 if (cant > prod.getCantidad()) {
-                    Toast.makeText(getContext(), "Stock insuficiente (Max: " + prod.getCantidad() + ")", Toast.LENGTH_SHORT).show();
+                    etCantidad.setError("Stock insuficiente");
                     return;
                 }
 
-                // Creamos la entidad correcta
                 ProductoVenta item = new ProductoVenta(0, prod.getId(), prod.getNombre(), cant, prod.getPrecio());
-                item.setProducto(prod); // Guardamos referencia completa para UI
-
+                item.setProducto(prod);
                 carrito.add(item);
 
-                // Actualizar UI
-                View row = getLayoutInflater().inflate(R.layout.item_producto_reparacion_simple, null); // Reusamos layout simple
-                TextView tv = row.findViewById(R.id.tvResumenItemSimple); // Asegúrate que el ID coincida
-                if(tv == null) tv = new TextView(getContext()); // Fallback si no usas xml
-
+                // Agregar vista visual
+                View row = getLayoutInflater().inflate(R.layout.item_producto_reparacion_simple, null);
+                TextView tv = row.findViewById(R.id.tvResumenItemSimple);
                 tv.setText(cant + "x " + prod.getNombre() + " ($" + (cant * prod.getPrecio()) + ")");
                 llContainer.addView(row);
 
-                // Actualizar Total
                 totalVenta[0] += (cant * prod.getPrecio());
                 tvTotal.setText("Total: $" + totalVenta[0]);
 
+                etCantidad.setText("1");
+                spProducto.setSelection(0); // Reset spinner para agregar otro
+
             } catch (NumberFormatException e) {
-                Toast.makeText(getContext(), "Cantidad inválida", Toast.LENGTH_SHORT).show();
+                etCantidad.setError("Cantidad inválida");
             }
         });
-
-        AlertDialog dialog = builder.create();
 
         btnFinalizar.setOnClickListener(v -> {
             int posCliente = spCliente.getSelectedItemPosition();
             if (posCliente <= 0) {
-                Toast.makeText(getContext(), "Seleccione un cliente", Toast.LENGTH_SHORT).show();
+                TextView errView = (TextView) spCliente.getSelectedView();
+                if(errView != null) errView.setError("Requerido");
                 return;
             }
             if (carrito.isEmpty()) {
@@ -191,25 +232,88 @@ public class VentasFragment extends Fragment implements VentasAdapter.OnVentaInt
         dialog.show();
     }
 
+    // --- Helpers Spinners ---
     private void configurarSpinnerClientes(Spinner sp) {
-        List<String> nombres = new ArrayList<>();
-        nombres.add("Seleccionar Cliente...");
-        for (Cliente c : listaClientes) nombres.add(c.getNombre());
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, nombres);
-        sp.setAdapter(adapter);
+        clientAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
+        sp.setAdapter(clientAdapter);
+        actualizarSpinnerClientes(clientAdapter, listaClientes);
+    }
+
+    private void actualizarSpinnerClientes(ArrayAdapter<String> adp, List<Cliente> list) {
+        adp.clear(); adp.add("Seleccionar Cliente...");
+        for (Cliente c : list) adp.add(c.getNombre());
+        adp.notifyDataSetChanged();
     }
 
     private void configurarSpinnerProductos(Spinner sp) {
-        List<String> nombres = new ArrayList<>();
-        nombres.add("Seleccionar Producto...");
-        for (Producto p : listaProductos) nombres.add(p.getNombre() + " ($" + p.getPrecio() + ")");
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, nombres);
-        sp.setAdapter(adapter);
+        productAdapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, new ArrayList<>());
+        sp.setAdapter(productAdapter);
+        actualizarSpinnerProductos(productAdapter, listaProductos);
     }
 
-    @Override
-    public void onVentaClick(Venta venta) {
-        // Generar PDF de la venta al hacer click (o abrir detalle)
-        ventasViewModel.generarComprobanteVenta(requireContext(), venta);
+    private void actualizarSpinnerProductos(ArrayAdapter<String> adp, List<Producto> list) {
+        adp.clear(); adp.add("Seleccionar Producto...");
+        for (Producto p : list) adp.add(p.getNombre() + " ($" + p.getPrecio() + ")");
+        adp.notifyDataSetChanged();
+    }
+
+    // --- Diálogos Rápidos ---
+    private void mostrarDialogoNuevoCliente() {
+        View view = getLayoutInflater().inflate(R.layout.dialog_nuevo_cliente, null);
+        AlertDialog d = new AlertDialog.Builder(requireContext()).setView(view).create();
+        EditText etDni = view.findViewById(R.id.etDniClienteDialog);
+        EditText etNombre = view.findViewById(R.id.etNombreClienteDialog);
+        // Opcionales
+        EditText etDir = view.findViewById(R.id.etDireccionClienteDialog);
+        EditText etLoc = view.findViewById(R.id.etLocalidadClienteDialog);
+
+        view.findViewById(R.id.btnGuardarClienteDialog).setOnClickListener(v -> {
+            if(etNombre.getText().toString().isEmpty()) {
+                etNombre.setError("Requerido");
+                return;
+            }
+            String dniVal = etDni.getText().toString().isEmpty() ? "-" : etDni.getText().toString();
+            String dirVal = (etDir != null) ? etDir.getText().toString() : "";
+            String locVal = (etLoc != null) ? etLoc.getText().toString() : "";
+
+            clientesViewModel.guardarCliente(dniVal, etNombre.getText().toString(), dirVal, locVal, "");
+            d.dismiss();
+        });
+        view.findViewById(R.id.btnCancelarClienteDialog).setOnClickListener(v -> d.dismiss());
+        d.show();
+    }
+
+    private void mostrarDialogoNuevoProducto() {
+        View view = getLayoutInflater().inflate(R.layout.dialog_nuevo_producto, null);
+        AlertDialog d = new AlertDialog.Builder(requireContext()).setView(view).create();
+        EditText etNom = view.findViewById(R.id.etNombreProductoDialog);
+        EditText etPre = view.findViewById(R.id.etPrecioDialog);
+        EditText etCant = view.findViewById(R.id.etCantidadDialog);
+        EditText etSku = view.findViewById(R.id.etSkuDialog); // Si existe en layout
+
+        view.findViewById(R.id.btnGuardarProductoDialog).setOnClickListener(v -> {
+            if(etNom.getText().toString().isEmpty()) { etNom.setError("Requerido"); return; }
+            if(etPre.getText().toString().isEmpty()) { etPre.setError("Requerido"); return; }
+
+            // SKU opcional
+            String skuVal = (etSku != null && !etSku.getText().toString().isEmpty()) ? etSku.getText().toString() : "SKU-" + System.currentTimeMillis();
+
+            productoViewModel.guardarProducto(skuVal, etNom.getText().toString(), etPre.getText().toString(), etCant.getText().toString());
+            d.dismiss();
+        });
+        view.findViewById(R.id.btnCancelarProductoDialog).setOnClickListener(v -> d.dismiss());
+        d.show();
+    }
+
+    @Override public void onVentaClick(Venta venta) { ventasViewModel.generarComprobanteVenta(requireContext(), venta); }
+
+    private void compartirPdf(File pdfFile) {
+        if(pdfFile == null) return;
+        android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(requireContext(), requireContext().getPackageName() + ".provider", pdfFile);
+        android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+        intent.setType("application/pdf");
+        intent.putExtra(android.content.Intent.EXTRA_STREAM, uri);
+        intent.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(android.content.Intent.createChooser(intent, "Compartir Comprobante"));
     }
 }

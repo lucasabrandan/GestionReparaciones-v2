@@ -17,32 +17,65 @@
             android:gravity="center"
             android:layout_marginBottom="24dp"/>
 
-        <!-- SELECCIÓN DE CLIENTE -->
+        <!-- CLIENTE + NUEVO -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Cliente"
             android:textStyle="bold"/>
 
-        <Spinner
-            android:id="@+id/spinnerClienteVenta"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginBottom="16dp"/>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
 
-        <!-- SELECCIÓN DE PRODUCTO Y CANTIDAD -->
+            <Spinner
+                android:id="@+id/spinnerClienteVenta"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/btnNuevoClienteVenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nuevo"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:minWidth="0dp"
+                android:paddingHorizontal="12dp"/>
+        </LinearLayout>
+
+        <!-- PRODUCTO + NUEVO -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Agregar Producto"
             android:textStyle="bold"/>
 
-        <!-- ESTE ES EL SPINNER QUE TE FALTABA -->
-        <Spinner
-            android:id="@+id/spinnerProductoVenta"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"/>
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <Spinner
+                android:id="@+id/spinnerProductoVenta"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"/>
+
+            <Button
+                android:id="@+id/btnNuevoProductoVenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nuevo"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:minWidth="0dp"
+                android:paddingHorizontal="12dp"/>
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -73,7 +106,7 @@
                 style="@style/Widget.Material3.Button.TonalButton"/>
         </LinearLayout>
 
-        <!-- LISTA DE PRODUCTOS AGREGADOS (CARRITO VISUAL) -->
+        <!-- CARRITO -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -89,10 +122,9 @@
             android:background="?attr/colorSurfaceVariant"
             android:padding="8dp"
             android:minHeight="50dp">
-            <!-- Aquí se añaden los items dinámicamente desde Java -->
         </LinearLayout>
 
-        <!-- TOTAL Y BOTÓN FINAL -->
+        <!-- TOTAL Y BOTONES -->
         <TextView
             android:id="@+id/tvTotalVentaDialog"
             android:layout_width="match_parent"
@@ -103,12 +135,27 @@
             android:layout_marginTop="16dp"
             android:textStyle="bold"/>
 
-        <Button
-            android:id="@+id/btnFinalizarVenta"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Confirmar Venta"
-            android:layout_marginTop="24dp"/>
+            android:orientation="horizontal"
+            android:gravity="end"
+            android:layout_marginTop="24dp">
+
+            <Button
+                android:id="@+id/btnCancelarVenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Cancelar"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginEnd="8dp"/>
+
+            <Button
+                android:id="@+id/btnFinalizarVenta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Confirmar Venta"/>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

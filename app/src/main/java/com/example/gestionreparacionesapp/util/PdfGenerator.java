@@ -15,6 +15,7 @@ import android.widget.Toast;
 
 import com.example.gestionreparacionesapp.R;
 import com.example.gestionreparacionesapp.data.db.entity.Cliente;
+import com.example.gestionreparacionesapp.data.db.entity.ProductoReparacion;
 import com.example.gestionreparacionesapp.data.db.entity.ProductoVenta;
 import com.example.gestionreparacionesapp.data.db.entity.Reparacion;
 import com.example.gestionreparacionesapp.data.db.entity.Venta;
@@ -29,267 +30,340 @@ import java.util.Locale;
 
 public class PdfGenerator {
 
-    // --- MÉTODO 1: Presupuesto INDIVIDUAL (para Reparaciones) ---
-    public static File generarPresupuestoIndividual(Context context, Cliente cliente, Reparacion reparacion) {
-        int pageHeight = 1120;
-        int pageWidth = 792;
-        PdfDocument pdfDocument = new PdfDocument();
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-        PdfDocument.Page page = pdfDocument.startPage(pageInfo);
+    private static final int PAGE_WIDTH = 595; // A4 Standard width in points
+    private static final int PAGE_HEIGHT = 842; // A4 Standard height in points
+    private static final int MARGIN = 40;
+
+    // Colores corporativos
+    private static final int COLOR_PRIMARY = Color.rgb(255, 193, 7); // Tu amarillo
+    private static final int COLOR_BLACK = Color.BLACK;
+    private static final int COLOR_GRAY = Color.DKGRAY;
+    private static final int COLOR_LIGHT_GRAY = Color.LTGRAY;
+
+    // --- REPARACIÓN INDIVIDUAL (Con lista de repuestos detallada) ---
+    public static File generarPresupuestoReparacion(Context context, Cliente cliente, Reparacion reparacion, List<ProductoReparacion> repuestos) {
+        PdfDocument pdf = new PdfDocument();
+        PdfDocument.Page page = pdf.startPage(new PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create());
         Canvas canvas = page.getCanvas();
 
-        dibujarEncabezado(context, canvas, "ORDEN DE SERVICIO");
-        dibujarDatosCliente(cliente, canvas);
+        int y = MARGIN;
 
-        int startY = 300;
-        dibujarTablaHeaderReparacion(context, canvas, startY);
+        // 1. Encabezado Estilo "LATIENDA"
+        y = dibujarEncabezado(context, canvas, y, "PRESUPUESTO DE REPARACIÓN");
 
-        int y = startY + 60;
-        dibujarFilaReparacion(canvas, reparacion, y);
-        y += 100;
+        // 2. Datos Cliente y Presupuesto (2 Columnas)
+        y = dibujarDatosDosColumnas(canvas, y, cliente, "REP-" + reparacion.getId(), "REPARACION");
 
-        dibujarTotales(context, canvas, y, reparacion.getPresupuestoTotal());
+        // 3. Detalle Equipo (Solo en reparación)
+        y = dibujarDetalleEquipo(canvas, y, reparacion);
 
-        pdfDocument.finishPage(page);
+        // 4. Tabla de Repuestos
+        y = dibujarTablaHeader(canvas, y, "Repuesto");
 
-        String fileName = "Orden_" + cliente.getNombre().replace(" ", "") + "_" + reparacion.getId() + ".pdf";
-        return guardarPdf(context, pdfDocument, fileName);
-    }
+        double totalAcumulado = 0;
 
-    // --- MÉTODO 2: Presupuesto GRUPAL (para Reparaciones) ---
-    public static File generarPresupuestoPdf(Context context, Cliente cliente, List<Reparacion> reparaciones) {
-        int pageHeight = 1120;
-        int pageWidth = 792;
-        PdfDocument pdfDocument = new PdfDocument();
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-        PdfDocument.Page page = pdfDocument.startPage(pageInfo);
-        Canvas canvas = page.getCanvas();
+        // Filas de Repuestos
+        if (repuestos != null) {
+            for (ProductoReparacion item : repuestos) {
+                double subtotalItem = item.getCantidad() * item.getPrecioUnitarioCobrado();
+                totalAcumulado += subtotalItem;
 
-        dibujarEncabezado(context, canvas, "ESTADO DE CUENTA / RESUMEN");
-        dibujarDatosCliente(cliente, canvas);
+                String nombre = item.getNombreProductoSnapshot();
+                // Si el nombre es muy largo, lo cortamos visualmente
+                if (nombre.length() > 35) nombre = nombre.substring(0, 35) + "...";
 
-        int startY = 280;
-        dibujarTablaHeaderReparacion(context, canvas, startY);
-
-        int y = startY + 60;
-        double totalGeneral = 0;
-
-        for (Reparacion rep : reparaciones) {
-            dibujarFilaReparacion(canvas, rep, y);
-            totalGeneral += rep.getPresupuestoTotal();
-            y += 50;
+                y = dibujarFilaTabla(canvas, y,
+                        "SKU-" + item.getProductoId(), // Si tienes SKU real úsalo aquí
+                        nombre,
+                        String.valueOf(item.getCantidad()),
+                        formatMoney(item.getPrecioUnitarioCobrado()),
+                        formatMoney(subtotalItem));
+            }
         }
 
-        dibujarTotales(context, canvas, y + 20, totalGeneral);
+        // 5. Mano de Obra (Como un item más o separado)
+        if (reparacion.getCostoManoDeObra() > 0) {
+            y = dibujarFilaTabla(canvas, y, "MO", "Mano de Obra / Servicio Técnico", "1",
+                    formatMoney(reparacion.getCostoManoDeObra()),
+                    formatMoney(reparacion.getCostoManoDeObra()));
+            totalAcumulado += reparacion.getCostoManoDeObra();
+        }
 
-        pdfDocument.finishPage(page);
+        // Si no hay nada, mostrar fila vacía
+        if (totalAcumulado == 0 && (repuestos == null || repuestos.isEmpty())) {
+            y = dibujarFilaTabla(canvas, y, "-", "Sin cargos registrados", "-", "-", "$ 0.00");
+        }
 
-        String fileName = "EstadoCuenta_" + cliente.getNombre().replace(" ", "") + "_" + System.currentTimeMillis() + ".pdf";
-        return guardarPdf(context, pdfDocument, fileName);
+        dibujarLineaFinal(canvas, y);
+        y += 20;
+
+        // 6. Totales
+        dibujarTotales(canvas, y, totalAcumulado);
+
+        // 7. Footer
+        dibujarFooter(canvas, PAGE_HEIGHT - 50);
+
+        pdf.finishPage(page);
+        return guardarPdf(context, pdf, "REP-" + reparacion.getId() + "_" + cliente.getNombre());
     }
 
-    // --- MÉTODO 3: Comprobante de VENTA (AÑADIDO) ---
+    // --- VENTA (Comprobante) ---
     public static File generarComprobanteVenta(Context context, Cliente cliente, Venta venta, List<ProductoVenta> productos) {
-        int pageHeight = 1120;
-        int pageWidth = 792;
-        PdfDocument pdfDocument = new PdfDocument();
-        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
-        PdfDocument.Page page = pdfDocument.startPage(pageInfo);
+        PdfDocument pdf = new PdfDocument();
+        PdfDocument.Page page = pdf.startPage(new PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create());
         Canvas canvas = page.getCanvas();
 
-        dibujarEncabezado(context, canvas, "COMPROBANTE DE VENTA");
-        dibujarDatosCliente(cliente, canvas);
+        int y = MARGIN;
 
-        int startY = 280;
-        dibujarTablaHeaderVenta(context, canvas, startY);
+        // 1. Encabezado
+        y = dibujarEncabezado(context, canvas, y, "PRESUPUESTO DE VENTA");
 
-        int y = startY + 60;
-        for (ProductoVenta p : productos) {
-            dibujarFilaVenta(canvas, p, y);
-            y += 40;
+        // 2. Bloque Datos
+        y = dibujarDatosDosColumnas(canvas, y, cliente, "VEN-" + venta.getId(), "VENTA");
+
+        y += 20;
+        y = dibujarTablaHeader(canvas, y, "Producto");
+
+        double totalAcumulado = 0;
+
+        if (productos != null) {
+            for (ProductoVenta pv : productos) {
+                double subtotal = pv.getCantidad() * pv.getPrecioUnitarioSnapshot();
+                totalAcumulado += subtotal;
+
+                String nombre = pv.getNombreProductoSnapshot();
+                if (nombre.length() > 35) nombre = nombre.substring(0, 35) + "...";
+
+                y = dibujarFilaTabla(canvas, y,
+                        "SKU-" + pv.getProductoId(),
+                        nombre,
+                        String.valueOf(pv.getCantidad()),
+                        formatMoney(pv.getPrecioUnitarioSnapshot()),
+                        formatMoney(subtotal));
+            }
         }
 
-        dibujarTotales(context, canvas, y + 20, venta.getTotal());
+        dibujarLineaFinal(canvas, y);
+        y += 20;
+        dibujarTotales(canvas, y, totalAcumulado);
+        dibujarFooter(canvas, PAGE_HEIGHT - 50);
 
-        pdfDocument.finishPage(page);
-
-        String fileName = "Venta_" + cliente.getNombre().replace(" ", "") + "_" + venta.getId() + ".pdf";
-        return guardarPdf(context, pdfDocument, fileName);
+        pdf.finishPage(page);
+        return guardarPdf(context, pdf, "VEN-" + venta.getId() + "_" + cliente.getNombre());
     }
 
-    // --- HELPERS GENERALES ---
+    // --- ESTADO DE CUENTA (Global) ---
+    public static File generarPresupuestoPdf(Context context, Cliente cliente, List<Reparacion> reparaciones) {
+        PdfDocument pdf = new PdfDocument();
+        PdfDocument.Page page = pdf.startPage(new PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, 1).create());
+        Canvas canvas = page.getCanvas();
 
-    private static void dibujarEncabezado(Context context, Canvas canvas, String tituloDocumento) {
+        int y = MARGIN;
+        y = dibujarEncabezado(context, canvas, y, "ESTADO DE CUENTA");
+        y = dibujarDatosDosColumnas(canvas, y, cliente, "RESUMEN", "CTA. CTE.");
+
+        y += 20;
+        y = dibujarTablaHeader(canvas, y, "Servicio");
+
+        double totalAcumulado = 0;
+
+        if (reparaciones != null) {
+            for (Reparacion rep : reparaciones) {
+                String desc = rep.getEquipoMarca() + " " + rep.getEquipoModelo() + " - " + rep.getDescripcionProblema();
+                if (desc.length() > 40) desc = desc.substring(0, 40) + "...";
+
+                y = dibujarFilaTabla(canvas, y,
+                        "REP-" + rep.getId(),
+                        desc,
+                        "1",
+                        formatMoney(rep.getPresupuestoTotal()),
+                        formatMoney(rep.getPresupuestoTotal()));
+
+                totalAcumulado += rep.getPresupuestoTotal();
+            }
+        }
+
+        dibujarLineaFinal(canvas, y);
+        y += 20;
+        dibujarTotales(canvas, y, totalAcumulado);
+        dibujarFooter(canvas, PAGE_HEIGHT - 50);
+
+        pdf.finishPage(page);
+        return guardarPdf(context, pdf, "EstadoCuenta_" + cliente.getNombre());
+    }
+
+
+    // ================= HELPERS DE DIBUJO =================
+
+    private static int dibujarEncabezado(Context context, Canvas canvas, int y, String tituloDoc) {
         Paint paint = new Paint();
-        Paint titlePaint = new Paint();
 
-        int colorDark = Color.DKGRAY;
-        try { colorDark = context.getColor(R.color.app_dark_brand); } catch(Exception ignored){}
-
+        // Logo (Izquierda)
         Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), R.drawable.app_logo);
         if (bitmap != null) {
-            Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, 100, 100, false);
-            canvas.drawBitmap(scaledBitmap, 40, 40, paint);
+            Bitmap scaled = Bitmap.createScaledBitmap(bitmap, 50, 50, false);
+            canvas.drawBitmap(scaled, MARGIN, y, paint);
         }
 
-        titlePaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        titlePaint.setTextSize(24);
-        titlePaint.setColor(colorDark);
-        canvas.drawText(tituloDocumento, 160, 70, titlePaint);
-
+        // Título Empresa
+        paint.setColor(COLOR_BLACK);
+        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
         paint.setTextSize(14);
-        paint.setColor(Color.GRAY);
-        canvas.drawText("Gestión de Reparaciones", 160, 95, paint);
-        String fechaHoy = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
-        canvas.drawText("Fecha de emisión: " + fechaHoy, 160, 115, paint);
+        canvas.drawText("DISPENSER", MARGIN + 60, y + 20, paint);
+        canvas.drawText("LATIENDA", MARGIN + 60, y + 35, paint);
+
+        // Título Documento (Derecha)
+        paint.setTextSize(18);
+        paint.setTextAlign(Paint.Align.RIGHT);
+        canvas.drawText(tituloDoc, PAGE_WIDTH - MARGIN, y + 30, paint);
+        paint.setTextAlign(Paint.Align.LEFT); // Reset
+
+        return y + 80;
     }
 
-    private static void dibujarDatosCliente(Cliente cliente, Canvas canvas) {
+    private static int dibujarDatosDosColumnas(Canvas canvas, int y, Cliente cliente, String nro, String tipo) {
         Paint paint = new Paint();
-        Paint boxPaint = new Paint();
-        boxPaint.setStyle(Paint.Style.STROKE);
-        boxPaint.setStrokeWidth(1);
-        boxPaint.setColor(Color.LTGRAY);
-        canvas.drawRect(40, 150, 752, 260, boxPaint);
+        paint.setTextSize(10);
+        int col2X = PAGE_WIDTH / 2 + 20;
 
-        paint.setTextSize(16);
+        // Títulos de Columnas
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText("CLIENTE", 50, 175, paint);
+        canvas.drawText("Datos del Cliente", MARGIN, y, paint);
+        canvas.drawText("Datos del Presupuesto", col2X, y, paint);
+        y += 15;
 
+        // Datos
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
-        paint.setTextSize(14);
-        canvas.drawText("Nombre: " + cliente.getNombre(), 50, 200, paint);
-        canvas.drawText("DNI: " + cliente.getDni(), 50, 220, paint);
-        canvas.drawText("Dirección: " + cliente.getDireccion() + " (" + cliente.getLocalidad() + ")", 50, 240, paint);
-    }
+        int y1 = y;
+        canvas.drawText("Nombre: " + cliente.getNombre(), MARGIN, y1, paint); y1 += 12;
+        canvas.drawText("Contacto: " + (cliente.getDni().isEmpty() ? "-" : cliente.getDni()), MARGIN, y1, paint); y1 += 12;
+        canvas.drawText("Email: -", MARGIN, y1, paint); y1 += 12;
+        canvas.drawText("Dirección: " + cliente.getDireccion(), MARGIN, y1, paint); y1 += 12;
+        canvas.drawText("Localidad: " + cliente.getLocalidad(), MARGIN, y1, paint); y1 += 12;
 
-    // --- HELPERS PARA REPARACIONES ---
-
-    private static void dibujarTablaHeaderReparacion(Context context, Canvas canvas, int startY) {
-        Paint paint = new Paint();
-        Paint headerPaint = new Paint();
-        int colorPrimary = Color.BLACK;
-        try { colorPrimary = context.getColor(R.color.app_primary_yellow); } catch(Exception ignored){}
-
-        headerPaint.setColor(colorPrimary);
-        canvas.drawRect(40, startY, 752, startY + 30, headerPaint);
-        paint.setColor(isColorLight(colorPrimary) ? Color.BLACK : Color.WHITE);
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText("EQUIPO / DETALLE", 50, startY + 20, paint);
-        canvas.drawText("SUBTOTAL", 650, startY + 20, paint);
-    }
-
-    private static void dibujarFilaReparacion(Canvas canvas, Reparacion rep, int y) {
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-
-        String equipo = rep.getEquipoMarca() + " " + rep.getEquipoModelo();
-        canvas.drawText(equipo, 50, y, paint);
-
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
-        String detalle = rep.getDescripcionProblema();
-        if (rep.getRepuestosUtilizados() != null && !rep.getRepuestosUtilizados().isEmpty()) {
-            detalle += " | Rep: " + rep.getRepuestosUtilizados();
+        int y2 = y;
+        canvas.drawText("N°: " + nro, col2X, y2, paint); y2 += 12;
+        String fecha = new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(new Date());
+        canvas.drawText("Fecha: " + fecha, col2X, y2, paint); y2 += 12;
+        if(tipo != null) {
+            canvas.drawText("Tipo: " + tipo, col2X, y2, paint); y2 += 12;
         }
-        if (detalle.length() > 85) detalle = detalle.substring(0, 85) + "...";
-        canvas.drawText(detalle, 50, y + 20, paint);
 
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText(String.format(Locale.getDefault(), "$ %.2f", rep.getPresupuestoTotal()), 650, y + 10, paint);
-
-        Paint linePaint = new Paint();
-        linePaint.setColor(Color.LTGRAY);
-        canvas.drawLine(40, y + 30, 752, y + 30, linePaint);
+        return Math.max(y1, y2) + 10;
     }
 
-    // --- HELPERS PARA VENTAS (NUEVOS) ---
-
-    private static void dibujarTablaHeaderVenta(Context context, Canvas canvas, int startY) {
+    private static int dibujarDetalleEquipo(Canvas canvas, int y, Reparacion rep) {
         Paint paint = new Paint();
-        Paint headerPaint = new Paint();
-        int colorPrimary = Color.BLACK;
-        try { colorPrimary = context.getColor(R.color.app_primary_yellow); } catch(Exception ignored){}
+        paint.setTextSize(10);
 
-        headerPaint.setColor(colorPrimary);
-        canvas.drawRect(40, startY, 752, startY + 30, headerPaint);
-        paint.setColor(isColorLight(colorPrimary) ? Color.BLACK : Color.WHITE);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText("PRODUCTO", 50, startY + 20, paint);
-        canvas.drawText("CANT.", 450, startY + 20, paint);
-        canvas.drawText("P. UNIT.", 550, startY + 20, paint);
-        canvas.drawText("SUBTOTAL", 650, startY + 20, paint);
-    }
+        canvas.drawText("Equipo", MARGIN, y, paint);
+        y += 15;
 
-    private static void dibujarFilaVenta(Canvas canvas, ProductoVenta producto, int y) {
-        Paint paint = new Paint();
-        paint.setColor(Color.BLACK);
         paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+        String linea = "Marca: " + rep.getEquipoMarca() + "   |   Modelo: " + rep.getEquipoModelo() + "   |   Serie: " + rep.getEquipoSerie();
+        canvas.drawText(linea, MARGIN, y, paint);
+        y += 12;
 
-        // Dibuja el nombre del producto
-        canvas.drawText(producto.getNombreProductoSnapshot(), 50, y, paint);
+        String falla = "Falla: " + rep.getDescripcionProblema();
+        if(falla.length() > 90) falla = falla.substring(0, 90) + "...";
+        canvas.drawText(falla, MARGIN, y, paint);
 
-        // Dibuja la cantidad
-        canvas.drawText(String.valueOf(producto.getCantidad()), 460, y, paint);
-
-        // Dibuja el precio unitario
-        canvas.drawText(String.format(Locale.getDefault(), "$ %.2f", producto.getPrecioUnitarioSnapshot()), 550, y, paint);
-
-        // Dibuja el subtotal
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText(String.format(Locale.getDefault(), "$ %.2f", producto.getSubtotal()), 650, y, paint);
-
-        Paint linePaint = new Paint();
-        linePaint.setColor(Color.LTGRAY);
-        canvas.drawLine(40, y + 15, 752, y + 15, linePaint);
+        return y + 25;
     }
 
-    // --- HELPERS COMUNES ---
+    private static int dibujarTablaHeader(Canvas canvas, int y, String labelItem) {
+        Paint bgPaint = new Paint();
+        bgPaint.setColor(COLOR_LIGHT_GRAY);
+        bgPaint.setAlpha(80);
+        canvas.drawRect(MARGIN, y - 12, PAGE_WIDTH - MARGIN, y + 6, bgPaint);
 
-    private static void dibujarTotales(Context context, Canvas canvas, int y, double total) {
+        Paint textPaint = new Paint();
+        textPaint.setTextSize(10);
+        textPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        textPaint.setColor(COLOR_BLACK);
+
+        canvas.drawText("SKU", MARGIN + 5, y, textPaint);
+        canvas.drawText(labelItem, MARGIN + 70, y, textPaint);
+        canvas.drawText("Cant.", PAGE_WIDTH - MARGIN - 180, y, textPaint);
+        canvas.drawText("P. Unit.", PAGE_WIDTH - MARGIN - 120, y, textPaint);
+        canvas.drawText("Total", PAGE_WIDTH - MARGIN - 60, y, textPaint);
+
+        return y + 20;
+    }
+
+    private static int dibujarFilaTabla(Canvas canvas, int y, String sku, String desc, String cant, String pUnit, String total) {
         Paint paint = new Paint();
-        Paint totalBgPaint = new Paint();
-        int colorDark = Color.DKGRAY;
-        try { colorDark = context.getColor(R.color.app_dark_brand); } catch(Exception ignored){}
+        paint.setTextSize(10);
+        paint.setColor(COLOR_BLACK);
 
-        totalBgPaint.setColor(colorDark);
-        canvas.drawRect(630, y - 25, 760, y + 10, totalBgPaint);
+        canvas.drawText(sku, MARGIN + 5, y, paint);
 
-        paint.setTextSize(20);
-        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        paint.setColor(Color.BLACK);
-        canvas.drawText("TOTAL:", 500, y, paint);
+        if (desc.length() > 40) desc = desc.substring(0, 40) + "...";
+        canvas.drawText(desc, MARGIN + 70, y, paint);
 
-        paint.setColor(Color.WHITE);
-        canvas.drawText(String.format(Locale.getDefault(), "$ %.2f", total), 640, y, paint);
+        canvas.drawText(cant, PAGE_WIDTH - MARGIN - 180, y, paint);
+        canvas.drawText(pUnit, PAGE_WIDTH - MARGIN - 120, y, paint);
+        canvas.drawText(total, PAGE_WIDTH - MARGIN - 50, y, paint); // Alineado un poco más a la derecha
+
+        return y + 15;
     }
 
-    private static File guardarPdf(Context context, PdfDocument pdfDocument, String fileName) {
-        File docsFolder = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
-        if (docsFolder != null && !docsFolder.exists()) {
-            docsFolder.mkdirs();
-        }
-        File file = new File(docsFolder, fileName);
+    private static void dibujarLineaFinal(Canvas canvas, int y) {
+        Paint linePaint = new Paint();
+        linePaint.setColor(COLOR_LIGHT_GRAY);
+        canvas.drawLine(MARGIN, y, PAGE_WIDTH - MARGIN, y, linePaint);
+    }
+
+    private static void dibujarTotales(Canvas canvas, int y, double total) {
+        Paint paint = new Paint();
+        paint.setTextSize(12);
+
+        // Subtotal
+        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.NORMAL));
+        String subTxt = "Subtotal:";
+        float subW = paint.measureText(subTxt);
+        canvas.drawText(subTxt, PAGE_WIDTH - MARGIN - 150, y, paint);
+        canvas.drawText(formatMoney(total), PAGE_WIDTH - MARGIN - 60, y, paint);
+
+        y += 20;
+
+        // Total Final
+        paint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
+        canvas.drawText("TOTAL FINAL:", PAGE_WIDTH - MARGIN - 150, y, paint);
+        canvas.drawText(formatMoney(total), PAGE_WIDTH - MARGIN - 60, y, paint);
+    }
+
+    private static void dibujarFooter(Canvas canvas, int y) {
+        Paint paint = new Paint();
+        paint.setTextSize(9);
+        paint.setColor(COLOR_GRAY);
+        paint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("Este presupuesto posee una validez de 7 días a partir de su emisión.", PAGE_WIDTH / 2, y, paint);
+    }
+
+    private static String formatMoney(double amount) {
+        return "$ " + String.format("%.2f", amount);
+    }
+
+    private static File guardarPdf(Context context, PdfDocument pdf, String fileNameBase) {
+        File folder = context.getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS);
+        if (!folder.exists()) folder.mkdirs();
+
+        String fileName = fileNameBase.replace("/", "-") + ".pdf";
+        File file = new File(folder, fileName.replace(" ", "_") + ".pdf");
 
         try {
-            pdfDocument.writeTo(new FileOutputStream(file));
+            pdf.writeTo(new FileOutputStream(file));
             new Handler(Looper.getMainLooper()).post(() ->
-                    Toast.makeText(context, "PDF guardado en Documentos", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "PDF guardado: " + fileName, Toast.LENGTH_SHORT).show()
             );
             return file;
         } catch (IOException e) {
             e.printStackTrace();
-            new Handler(Looper.getMainLooper()).post(() ->
-                    Toast.makeText(context, "Error al guardar PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-            );
             return null;
         } finally {
-            pdfDocument.close();
+            pdf.close();
         }
-    }
-
-    private static boolean isColorLight(int color) {
-        double darkness = 1 - (0.299 * Color.red(color) + 0.587 * Color.green(color) + 0.114 * Color.blue(color)) / 255;
-        return darkness < 0.5;
     }
 }
